@@ -122,7 +122,7 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
   <div class="nav-item" onclick="pageNav('history')"><span class="icon">📊</span>战绩</div>
 </div>
 
-<div id="loginModal" class="modal-overlay hidden">
+<div id="loginModal" class="modal-overlay" style="display:none">
   <div class="modal">
     <h2>欢迎来到世界杯预测</h2>
     <div class="avatar-select">
@@ -163,8 +163,8 @@ function updateUserUI() {
   }
 }
 
-function showLogin() { document.getElementById('loginModal').classList.remove('hidden'); }
-function closeLogin() { document.getElementById('loginModal').classList.add('hidden'); }
+function showLogin() { document.getElementById('loginModal').style.display='flex'; }
+function closeLogin() { document.getElementById('loginModal').style.display='none'; }
 function pickAvatar(el, av) {
   document.querySelectorAll('.avatar-opt').forEach(function(e){e.classList.remove('selected')});
   el.classList.add('selected');
