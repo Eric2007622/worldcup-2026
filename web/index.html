@@ -162,7 +162,7 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
       <span class="avatar-opt" onclick="pickAvatar(this,'🎮')">🎮</span>
     </div>
     <input type="text" id="nicknameInput" placeholder="输入你的昵称" maxlength="12">
-    <input type="text" id="wechatInputLogin" placeholder="输入你的微信号（必填）" maxlength="20" style="width:100%;padding:10px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;margin-bottom:12px">
+    <input type="text" id="wechatInputLogin" placeholder="输入你的微信号(必填)" maxlength="20" style="width:100%;padding:10px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;margin-bottom:12px">
     <button class="submit" onclick="doLogin()">进入游戏</button>
     <div class="skip" onclick="doGuestLogin()">先看看再说</div>
   </div>
@@ -214,7 +214,7 @@ function saveWechat() {
     saveUser(currentUser);
     document.getElementById('wechatStatus').textContent = '已绑定: ' + wid;
     document.getElementById('wechatStatus').style.color = '#4caf50';
-    alert('微信号绑定成功！');
+    alert('微信号绑定成功!');
   }).catch(function(){ alert('保存失败'); });
 }
 function closeLogin() { document.getElementById('loginModal').style.display='none'; }
@@ -246,9 +246,9 @@ function doLogin() {
     if (d.user) {
       saveUser(d.user);
       updateUserUI();
-      if (d.login) showToast('👋', '欢迎回来！', d.user.nickname);
-      else if (d.inviter) showToast('🎉', '注册成功！', '通过 ' + d.inviter + ' 邀请，+200金币');
-      else showToast('🎉', '注册成功！', '欢迎 ' + d.user.nickname);
+      if (d.login) showToast('👋', '欢迎回来!', d.user.nickname);
+      else if (d.inviter) showToast('🎉', '注册成功!', '通过 ' + d.inviter + ' 邀请,+200金币');
+      else showToast('🎉', '注册成功!', '欢迎 ' + d.user.nickname);
     }
   }).catch(function(e) {
     showToast('❌', '登录失败', e.message || '请重试');
@@ -310,7 +310,7 @@ async function loadData() {
 // ===== 球队数据 =====
 var R={'阿根廷':94,'法国':93,'英格兰':91,'巴西':90,'德国':89,'西班牙':89,'荷兰':87,'葡萄牙':87,'比利时':85,'克罗地亚':84,'哥伦比亚':83,'乌拉圭':82,'日本':80,'美国':79,'墨西哥':78,'韩国':77,'澳大利亚':76,'瑞士':76,'塞内加尔':75,'摩洛哥':75,'挪威':74,'瑞典':74,'埃及':73,'科特迪瓦':73,'厄瓜多尔':72,'土耳其':72,'巴拉圭':71,'苏格兰':70,'卡塔尔':69,'加拿大':68,'伊朗':67,'沙特阿拉伯':66,'突尼斯':65,'捷克':65,'波黑':64,'奥地利':64,'加纳':63,'新西兰':62,'巴拿马':61,'海地':58,'阿尔及利亚':62,'约旦':59,'伊拉克':58,'南非':57,'佛得角':55,'库拉索':50,'乌兹别克斯坦':56};
 var HB={'美国':8,'墨西哥':8,'加拿大':6};
-var SP={'法国vs塞内加尔':{h:2,a:0,c:85,r:'法国阵容豪华，姆巴佩领衔'},'伊拉克vs挪威':{h:1,a:2,c:65,r:'哈兰德坐镇挪威锋线'},'奥地利vs约旦':{h:2,a:1,c:70,r:'欧洲劲旅经验取胜'},'阿根廷vs阿尔及利亚':{h:3,a:0,c:90,r:'卫冕冠军首战，梅西最后一舞'},'英格兰vs克罗地亚':{h:2,a:1,c:65,r:'英格兰青春风暴对决克罗地亚'},'德国vs科特迪瓦':{h:3,a:1,c:75,r:'德国首轮7-1后士气高涨'},'美国vs澳大利亚':{h:2,a:1,c:70,r:'东道主状态火热'},'西班牙vs沙特阿拉伯':{h:2,a:0,c:75,r:'西班牙必全力争胜'},'比利时vs伊朗':{h:2,a:0,c:70,r:'比利时必须拿下'}};
+var SP={'法国vs塞内加尔':{h:2,a:0,c:85,r:'法国阵容豪华,姆巴佩领衔'},'伊拉克vs挪威':{h:1,a:2,c:65,r:'哈兰德坐镇挪威锋线'},'奥地利vs约旦':{h:2,a:1,c:70,r:'欧洲劲旅经验取胜'},'阿根廷vs阿尔及利亚':{h:3,a:0,c:90,r:'卫冕冠军首战,梅西最后一舞'},'英格兰vs克罗地亚':{h:2,a:1,c:65,r:'英格兰青春风暴对决克罗地亚'},'德国vs科特迪瓦':{h:3,a:1,c:75,r:'德国首轮7-1后士气高涨'},'美国vs澳大利亚':{h:2,a:1,c:70,r:'东道主状态火热'},'西班牙vs沙特阿拉伯':{h:2,a:0,c:75,r:'西班牙必全力争胜'},'比利时vs伊朗':{h:2,a:0,c:70,r:'比利时必须拿下'}};
 function predict(h,a){var hr=(R[h]||60)+(HB[h]||0),ar=R[a]||60,diff=hr-ar,k=h+'vs'+a;if(SP[k]){var s=SP[k];return{hg:s.h,ag:s.a,conf:s.c,reason:s.r,res:s.h>s.a?'home':s.h<s.a?'away':'draw'}}if(diff>=25)return{hg:3,ag:0,conf:90,reason:h+'实力碾压',res:'home'};if(diff>=15)return{hg:2,ag:0,conf:80,reason:h+'占据优势',res:'home'};if(diff>=8)return{hg:2,ag:1,conf:70,reason:h+'小胜',res:'home'};if(diff>=3)return{hg:1,ag:0,conf:60,reason:h+'微弱优势',res:'home'};if(diff>=-3)return{hg:1,ag:1,conf:55,reason:'平局可能性大',res:'draw'};if(diff>=-8)return{hg:0,ag:1,conf:60,reason:a+'客场小胜',res:'away'};if(diff>=-15)return{hg:1,ag:2,conf:70,reason:a+'实力占优',res:'away'};return{hg:0,ag:3,conf:85,reason:a+'碾压',res:'away'}}
 function isUpset(m){if(m.status!=='finished')return false;var hr=R[m.home]||60,ar=R[m.away]||60;if(hr-ar>=15&&m.homeScore<=m.awayScore)return true;if(ar-hr>=15&&m.awayScore<=m.homeScore)return true;if(m.home==='西班牙'&&m.away==='佛得角'&&m.homeScore===m.awayScore)return true;if(m.home==='巴西'&&m.away==='摩洛哥'&&m.homeScore===m.awayScore)return true;return false}
 function getToday(){var n=new Date();return new Date(n.getTime()+8*3600000).toISOString().split('T')[0]}
@@ -367,7 +367,7 @@ function setAmt(id,v){betAmounts[id]=parseInt(v)||0}
 
 function rMyBets(){
   var pending=myBets.filter(function(b){return b.status==='pending'});
-  if(!pending.length)return'<div class="empty">暂无进行中的竞猜<br><br>去「即将开赛」页面下注吧</div>';
+  if(!pending.length)return'<div class="empty">暂无进行中的竞猜<br><br>去"即将开赛"页面下注吧</div>';
   var h='<div class="section">进行中的竞猜</div>';
   pending.forEach(function(b){var ct=b.choice==='home'?b.home:b.choice==='away'?b.away:'平局';h+='<div class="card"><div class="match"><div class="team"><span class="flag">'+b.homeFlag+'</span><span class="tname">'+b.home+'</span></div><div style="font-size:14px;color:#5a6580">VS</div><div class="team away"><span class="flag">'+b.awayFlag+'</span><span class="tname">'+b.away+'</span></div></div><div class="my-bet"><span>竞猜: <span class="my-bet-choice">'+ct+'</span></span><span>'+b.amount+'金币 赔率'+b.odds+' 可赢'+b.potential+'</span></div></div>'});
   return h;
@@ -408,7 +408,7 @@ async function loadLB() {
       h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+u.avatar+'</div><div class="lb-name">'+u.nickname+'</div><div class="lb-value '+cls+'">'+(u.profit>=0?'+':'')+u.profit+'</div></div>';
     });
   }
-  if (!list.length) h = '<div class="empty">暂无数据，快来成为第一名！</div>';
+  if (!list.length) h = '<div class="empty">暂无数据,快来成为第一名!</div>';
   var el = document.getElementById('lbContent');
   if (el) el.innerHTML = h;
 }
@@ -437,11 +437,11 @@ function rFriends() {
   setTimeout(loadFriendsData, 10);
   var inviteCode = currentUser.inviteCode || '';
 
-  // ===== 输入邀请码（如果还没用过） =====
+  // ===== 输入邀请码(如果还没用过) =====
   if (!currentUser.invitedBy) {
     h += '<div class="card" style="background:linear-gradient(135deg,#1a0020,#0d1225);border:2px solid #ff6b35;border-radius:14px;padding:16px;text-align:center">';
     h += '<div style="font-size:15px;font-weight:700;color:#ff6b35;margin-bottom:8px">🎁 输入邀请码领奖励</div>';
-    h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">输入好友的邀请码，<span style="color:#ffd700">双方各得200金币</span></div>';
+    h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">输入好友的邀请码,<span style="color:#ffd700">双方各得200金币</span></div>';
     h += '<div style="display:flex;gap:6px">';
     h += '<input type="text" id="inputInviteCode" placeholder="输入邀请码" style="flex:1;padding:8px;background:#0a0e1a;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;letter-spacing:2px">';
     h += '<button onclick="useInviteCode()" style="padding:8px 16px;background:linear-gradient(135deg,#ff6b35,#ff4500);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">领取</button>';
@@ -455,7 +455,7 @@ function rFriends() {
   h += '<div style="background:#0a0e1a;padding:12px;border-radius:10px;margin-bottom:10px">';
   h += '<div style="font-size:28px;font-weight:800;color:#ffd700;letter-spacing:4px">' + (inviteCode || '---') + '</div>';
   h += '</div>';
-  h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">分享给好友，每邀请1人 <span style="color:#ffd700;font-weight:700">双方各+200金币</span></div>';
+  h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">分享给好友,每邀请1人 <span style="color:#ffd700;font-weight:700">双方各+200金币</span></div>';
   h += '<div style="display:flex;gap:8px;justify-content:center">';
   h += '<button onclick="copyInvite()" style="flex:1;padding:10px;background:#07c160;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;max-width:140px">复制链接</button>';
   h += '<button onclick="shareInvite()" style="flex:1;padding:10px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;max-width:140px">分享微信</button>';
@@ -488,7 +488,7 @@ function useInviteCode() {
     if (d.error) { showToast('❌', '领取失败', d.error); return; }
     currentUser = d.user;
     saveUser(currentUser);
-    showToast('🎉', '领取成功！', '你和 ' + d.inviterName + ' 各获得 ' + d.bonus + ' 金币');
+    showToast('🎉', '领取成功!', '你和 ' + d.inviterName + ' 各获得 ' + d.bonus + ' 金币');
     setTimeout(render, 1500);
   }).catch(function(){ showToast('❌', '领取失败', '网络错误'); });
 }
@@ -542,7 +542,7 @@ function loadGlobalRank() {
 function copyInvite() {
   var link = window.location.origin + '/?invite=' + (currentUser.inviteCode || '');
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(link).then(function(){alert('已复制邀请链接！分享给微信好友即可')});
+    navigator.clipboard.writeText(link).then(function(){alert('已复制邀请链接!分享给微信好友即可')});
   } else {
     var input = document.createElement('input');
     input.value = link;
@@ -550,21 +550,21 @@ function copyInvite() {
     input.select();
     document.execCommand('copy');
     document.body.removeChild(input);
-    alert('已复制邀请链接！');
+    alert('已复制邀请链接!');
   }
 }
 
 function shareInvite() {
   var link = window.location.origin + '/?invite=' + (currentUser.inviteCode || '');
-  var text = '我在2026世界杯AI预测中心等你！快来一起竞猜赢金币 🏆';
-  // 尝试调用微信JS-SDK分享（如果在微信浏览器中）
+  var text = '我在2026世界杯AI预测中心等你!快来一起竞猜赢金币 🏆';
+  // 尝试调用微信JS-SDK分享(如果在微信浏览器中)
   if (navigator.share) {
     navigator.share({title: '世界杯AI预测', text: text, url: link});
   } else {
     // 复制到剪贴板
     var fullText = text + '\n' + link;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(fullText).then(function(){alert('已复制分享内容！打开微信粘贴发送给好友')});
+      navigator.clipboard.writeText(fullText).then(function(){alert('已复制分享内容!打开微信粘贴发送给好友')});
     } else {
       prompt('复制以下内容发送给微信好友:', fullText);
     }
@@ -581,7 +581,7 @@ function loadFriendsData() {
       if (!el) return;
       var h = '';
       var list = data.byCoins || [];
-      if (!list.length) { el.innerHTML = '<div class="empty">还没有好友，快邀请吧！</div>'; return; }
+      if (!list.length) { el.innerHTML = '<div class="empty">还没有好友,快邀请吧!</div>'; return; }
       h += '<div class="card" style="padding:4px">';
       list.forEach(function(u) {
         var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
@@ -616,7 +616,7 @@ function rStandings(){
   return h;
 }
 
-function rChamp(){return'<div class="section">冠军预测</div><div class="card gold champ"><div class="champ-flag">🇦🇷</div><div class="champ-name">阿根廷</div><div class="champ-sub">卫冕冠军阵容成熟，梅西最后一舞</div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">夺冠概率: 20%</span></div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">候选: </span>🇫🇷法国18% · 🇩🇪德国15% · 🇧🇷巴西12% · 🇪🇸西班牙10%</div></div>'}
+function rChamp(){return'<div class="section">冠军预测</div><div class="card gold champ"><div class="champ-flag">🇦🇷</div><div class="champ-name">阿根廷</div><div class="champ-sub">卫冕冠军阵容成熟,梅西最后一舞</div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">夺冠概率: 20%</span></div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">候选: </span>🇫🇷法国18% · 🇩🇪德国15% · 🇧🇷巴西12% · 🇪🇸西班牙10%</div></div>'}
 
 function showGroup(el,k){document.querySelectorAll('.gtab').forEach(function(t){t.classList.remove('active')});el.classList.add('active');document.querySelectorAll('.card[id^="g-"]').forEach(function(c){c.style.display='none'});document.getElementById('g-'+k).style.display='block'}
 
@@ -643,7 +643,7 @@ if (currentUser) {
       }
     })
     .catch(function() {
-      // 账号不存在，清除本地数据，重新登录
+      // 账号不存在,清除本地数据,重新登录
       localStorage.removeItem('wc_user');
       currentUser = null;
       updateUserUI();
