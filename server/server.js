@@ -381,6 +381,59 @@ app.get('/api/leaderboard/friends/:uid', (req, res) => {
   res.json({ byCoins, byWinRate })
 })
 
+
+// 设置微信号
+app.post('/api/user/:uid/wechat', (req, res) => {
+  const { wechatId } = req.body
+  if (!wechatId || wechatId.length < 2 || wechatId.length > 20) {
+    return res.status(400).json({ error: '微信号2-20个字符' })
+  }
+  const db = readDB()
+  const user = db.users[req.params.uid]
+  if (!user) return res.status(404).json({ error: '用户不存在' })
+
+  // 检查微信号是否已被绑定
+  const existing = Object.values(db.users).find(u => u.wechatId === wechatId && u.uid !== req.params.uid)
+  if (existing) return res.status(400).json({ error: '该微信号已被绑定' })
+
+  user.wechatId = wechatId
+  writeDB(db)
+  res.json({ user })
+})
+
+// 通过微信号搜索用户
+app.get('/api/user/search/:keyword', (req, res) => {
+  const db = readDB()
+  const kw = req.params.keyword.toLowerCase()
+  const results = Object.values(db.users)
+    .filter(u => (u.wechatId && u.wechatId.toLowerCase().includes(kw)) || u.nickname.toLowerCase().includes(kw))
+    .slice(0, 10)
+    .map(u => ({ uid: u.uid, nickname: u.nickname, avatar: u.avatar, wechatId: u.wechatId || '', coins: u.coins }))
+  res.json({ results })
+})
+
+// 添加好友（通过微信号）
+app.post('/api/user/:uid/add-friend', (req, res) => {
+  const { wechatId } = req.body
+  const db = readDB()
+  const user = db.users[req.params.uid]
+  if (!user) return res.status(404).json({ error: '用户不存在' })
+
+  const friend = Object.values(db.users).find(u => u.wechatId === wechatId)
+  if (!friend) return res.status(404).json({ error: '未找到该微信号用户' })
+  if (friend.uid === user.uid) return res.status(400).json({ error: '不能添加自己' })
+
+  if (!user.friends) user.friends = []
+  if (user.friends.includes(friend.uid)) return res.status(400).json({ error: '已经是好友了' })
+
+  user.friends.push(friend.uid)
+  if (!friend.friends) friend.friends = []
+  friend.friends.push(user.uid)
+
+  writeDB(db)
+  res.json({ friend: { nickname: friend.nickname, avatar: friend.avatar, wechatId: friend.wechatId } })
+})
+
 app.get('/api/health', (req, res) => {
   const db = readDB()
   res.json({ status: 'ok', source: 'OpenLigaDB', users: Object.keys(db.users).length, bets: db.bets.length })
