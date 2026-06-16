@@ -150,20 +150,37 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
 
 <div id="loginModal" class="modal-overlay" style="display:none">
   <div class="modal">
-    <h2>欢迎来到世界杯预测</h2>
-    <div class="avatar-select">
-      <span class="avatar-opt selected" onclick="pickAvatar(this,'😎')">😎</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'🦁')">🦁</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'⚽')">⚽</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'🏆')">🏆</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'🎯')">🎯</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'🔥')">🔥</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'👑')">👑</span>
-      <span class="avatar-opt" onclick="pickAvatar(this,'🎮')">🎮</span>
+    <div style="display:flex;gap:0;margin-bottom:16px;background:#0d1225;border-radius:8px;padding:3px">
+      <div id="tabReg" style="flex:1;text-align:center;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:#ffd700;background:#1a2240" onclick="switchAuthTab('register')">注册</div>
+      <div id="tabLogin" style="flex:1;text-align:center;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;color:#5a6580" onclick="switchAuthTab('login')">登录</div>
     </div>
-    <input type="text" id="nicknameInput" placeholder="输入你的昵称" maxlength="12">
-    <input type="text" id="wechatInputLogin" placeholder="输入你的微信号(必填)" maxlength="20" style="width:100%;padding:10px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;margin-bottom:12px">
-    <button class="submit" onclick="doLogin()">进入游戏</button>
+
+    <!-- 注册 -->
+    <div id="regPanel">
+      <div class="avatar-select">
+        <span class="avatar-opt selected" onclick="pickAvatar(this,'😎')">😎</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'🦁')">🦁</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'⚽')">⚽</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'🏆')">🏆</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'🎯')">🎯</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'🔥')">🔥</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'👑')">👑</span>
+        <span class="avatar-opt" onclick="pickAvatar(this,'🎮')">🎮</span>
+      </div>
+      <input type="text" id="regNickname" placeholder="设置昵称(唯一)" maxlength="12">
+      <input type="text" id="regWechat" placeholder="微信号(登录凭证)" maxlength="20" style="width:100%;padding:10px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;margin-bottom:12px">
+      <input type="text" id="regInvite" placeholder="邀请码(选填)" maxlength="20" style="width:100%;padding:10px;background:#0d1225;border:1px solid #2a3560;color:#8892b0;border-radius:8px;font-size:13px;text-align:center;margin-bottom:12px;letter-spacing:2px">
+      <button class="submit" onclick="doRegister()">注册</button>
+    </div>
+
+    <!-- 登录 -->
+    <div id="loginPanel" style="display:none">
+      <div style="font-size:40px;margin-bottom:12px">👋</div>
+      <input type="text" id="loginWechat" placeholder="输入微信号" maxlength="20" style="width:100%;padding:12px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:16px;text-align:center;margin-bottom:16px">
+      <button class="submit" onclick="doLogin()">登录</button>
+      <div style="font-size:11px;color:#5a6580;margin-top:8px">输入注册时的微信号即可找回账号</div>
+    </div>
+
     <div class="skip" onclick="doGuestLogin()">先看看再说</div>
   </div>
 </div>
@@ -190,7 +207,7 @@ function updateUserUI() {
   }
 }
 
-function showLogin() { document.getElementById('loginModal').style.display='flex'; }
+function showLogin() { window.location.href = '/register.html'; }
 function showProfile() {
   if (!currentUser) { showLogin(); return; }
   document.getElementById('profileAvatar').textContent = currentUser.avatar || '😎';
@@ -426,7 +443,7 @@ function rFriends() {
   if (!currentUser) {
     h += '<div class="card" style="text-align:center;padding:16px;border-color:#ffd700">';
     h += '<div style="font-size:14px;color:#ffd700;margin-bottom:8px">登录后可邀请好友、竞猜赢金币</div>';
-    h += '<button onclick="showLogin()" style="padding:10px 30px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer">立即登录</button>';
+    h += '<button onclick="window.location.href=\'/register.html\'" style="padding:10px 30px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer">立即注册</button>';
     h += '</div>';
     h += '<div class="section">全服排行榜</div>';
     h += '<div id="globalRank"><div style="text-align:center;padding:20px;color:#5a6580">加载中...</div></div>';
@@ -650,7 +667,7 @@ if (currentUser) {
       showLogin();
     });
 } else {
-  showLogin();
+  window.location.href = '/register.html';
 }
 loadData();
 setInterval(function(){loadData();loadBets()}, 60000);
