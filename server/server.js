@@ -417,13 +417,18 @@ app.get('/api/user/search/:keyword', (req, res) => {
 
 // 添加好友（通过微信号）
 app.post('/api/user/:uid/add-friend', (req, res) => {
-  const { wechatId } = req.body
+  const { wechatId, targetUid } = req.body
   const db = readDB()
   const user = db.users[req.params.uid]
   if (!user) return res.status(404).json({ error: '用户不存在' })
 
-  const friend = Object.values(db.users).find(u => u.wechatId === wechatId)
-  if (!friend) return res.status(404).json({ error: '未找到该微信号用户' })
+  let friend = null
+  if (targetUid) {
+    friend = db.users[targetUid]
+  } else if (wechatId) {
+    friend = Object.values(db.users).find(u => u.wechatId === wechatId)
+  }
+  if (!friend) return res.status(404).json({ error: '未找到用户' })
   if (friend.uid === user.uid) return res.status(400).json({ error: '不能添加自己' })
 
   if (!user.friends) user.friends = []
@@ -434,7 +439,7 @@ app.post('/api/user/:uid/add-friend', (req, res) => {
   friend.friends.push(user.uid)
 
   writeDB(db)
-  res.json({ friend: { nickname: friend.nickname, avatar: friend.avatar, wechatId: friend.wechatId } })
+  res.json({ friend: { nickname: friend.nickname, avatar: friend.avatar, wechatId: friend.wechatId || '' } })
 })
 
 app.get('/api/health', (req, res) => {
