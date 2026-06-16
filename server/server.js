@@ -359,6 +359,9 @@ function dbUser(u) {
 }
 
 app.use(express.static(path.join(__dirname, '..', 'web')))
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'web', 'index.html'))
+})
 
 initDB().then(() => {
   app.listen(PORT, () => {
