@@ -410,7 +410,6 @@ function rFriends() {
   var h = '';
 
   if (!currentUser) {
-    // 未登录 - 显示全服排行榜
     h += '<div class="card" style="text-align:center;padding:16px;border-color:#ffd700">';
     h += '<div style="font-size:14px;color:#ffd700;margin-bottom:8px">登录后可邀请好友、竞猜赢金币</div>';
     h += '<button onclick="showLogin()" style="padding:10px 30px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer">立即登录</button>';
@@ -423,15 +422,26 @@ function rFriends() {
 
   setTimeout(loadFriendsData, 10);
   var inviteCode = currentUser.inviteCode || '';
-  h = '';
 
-  // 邀请码板块
-  h += '<div class="card" style="background:linear-gradient(135deg,#1a1f00,#0d1225);border:2px solid #ffd700;border-radius:14px;padding:16px;text-align:center;margin-bottom:12px">';
-  h += '<div style="font-size:15px;font-weight:700;color:#ffd700;margin-bottom:10px">\ud83c\udf81 我的邀请码</div>';
+  // ===== 输入邀请码（如果还没用过） =====
+  if (!currentUser.invitedBy) {
+    h += '<div class="card" style="background:linear-gradient(135deg,#1a0020,#0d1225);border:2px solid #ff6b35;border-radius:14px;padding:16px;text-align:center">';
+    h += '<div style="font-size:15px;font-weight:700;color:#ff6b35;margin-bottom:8px">🎁 输入邀请码领奖励</div>';
+    h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">输入好友的邀请码，<span style="color:#ffd700">双方各得200金币</span></div>';
+    h += '<div style="display:flex;gap:6px">';
+    h += '<input type="text" id="inputInviteCode" placeholder="输入邀请码" style="flex:1;padding:8px;background:#0a0e1a;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:14px;text-align:center;letter-spacing:2px">';
+    h += '<button onclick="useInviteCode()" style="padding:8px 16px;background:linear-gradient(135deg,#ff6b35,#ff4500);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">领取</button>';
+    h += '</div>';
+    h += '</div>';
+  }
+
+  // ===== 我的邀请码 =====
+  h += '<div class="card" style="background:linear-gradient(135deg,#1a1f00,#0d1225);border:2px solid #ffd700;border-radius:14px;padding:16px;text-align:center">';
+  h += '<div style="font-size:15px;font-weight:700;color:#ffd700;margin-bottom:10px">🎁 我的邀请码</div>';
   h += '<div style="background:#0a0e1a;padding:12px;border-radius:10px;margin-bottom:10px">';
   h += '<div style="font-size:28px;font-weight:800;color:#ffd700;letter-spacing:4px">' + (inviteCode || '---') + '</div>';
   h += '</div>';
-  h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">分享给好友，每邀请1人获得 <span style="color:#ffd700;font-weight:700">+200金币</span></div>';
+  h += '<div style="font-size:12px;color:#8892b0;margin-bottom:10px">分享给好友，每邀请1人 <span style="color:#ffd700;font-weight:700">双方各+200金币</span></div>';
   h += '<div style="display:flex;gap:8px;justify-content:center">';
   h += '<button onclick="copyInvite()" style="flex:1;padding:10px;background:#07c160;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;max-width:140px">复制链接</button>';
   h += '<button onclick="shareInvite()" style="flex:1;padding:10px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;max-width:140px">分享微信</button>';
@@ -442,7 +452,7 @@ function rFriends() {
   h += '<div class="card" style="padding:12px">';
   h += '<div style="font-size:13px;font-weight:600;color:#e0e0e0;margin-bottom:8px">搜索添加好友</div>';
   h += '<div style="display:flex;gap:6px">';
-  h += '<input type="text" id="searchWechat" placeholder="输入微信号搜索" style="flex:1;padding:8px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:13px">';
+  h += '<input type="text" id="searchWechat" placeholder="输入微信号或昵称" style="flex:1;padding:8px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:13px">';
   h += '<button onclick="searchFriend()" style="padding:8px 14px;background:#4a9eff;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">搜索</button>';
   h += '</div>';
   h += '<div id="searchResult" style="margin-top:6px"></div>';
@@ -453,6 +463,38 @@ function rFriends() {
   h += '<div id="friendsRank"><div style="text-align:center;padding:20px;color:#5a6580">加载中...</div></div>';
   return h;
 }
+
+function useInviteCode() {
+  var code = document.getElementById('inputInviteCode').value.trim();
+  if (!code) { showToast('❌', '请输入邀请码', ''); return; }
+  fetch(API + '/api/user/' + currentUser.uid + '/use-invite', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ inviteCode: code })
+  }).then(function(r){return r.json()}).then(function(d) {
+    if (d.error) { showToast('❌', '领取失败', d.error); return; }
+    currentUser = d.user;
+    saveUser(currentUser);
+    showToast('🎉', '领取成功！', '你和 ' + d.inviterName + ' 各获得 ' + d.bonus + ' 金币');
+    setTimeout(render, 1500);
+  }).catch(function(){ showToast('❌', '领取失败', '网络错误'); });
+}
+
+function loadGlobalRank() {
+  fetch(API + '/api/leaderboard').then(function(r){return r.json()}).then(function(data) {
+    var el = document.getElementById('globalRank');
+    if (!el) return;
+    var list = data.byCoins || [];
+    if (!list.length) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
+    var h = '<div class="card" style="padding:4px">';
+    list.forEach(function(u) {
+      var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
+      h += '<div class="lb-row"><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + u.avatar + '</div><div class="lb-name">' + u.nickname + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
+    });
+    h += '</div>';
+    el.innerHTML = h;
+  }).catch(function(){});
+}
+
 
 
 function showToast(icon, title, sub) {
