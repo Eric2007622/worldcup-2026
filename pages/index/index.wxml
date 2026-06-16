@@ -1,0 +1,143 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-title">🏆 2026世界杯 · AI预测</view>
+    <view class="header-sub">实时赛果 + 智能预测</view>
+    <view class="header-update">更新：{{lastUpdate}}</view>
+  </view>
+
+  <!-- Tab切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'today' ? 'active' : ''}}" bindtap="switchTab" data-tab="today">📅 今日</view>
+    <view class="tab-item {{activeTab === 'upcoming' ? 'active' : ''}}" bindtap="switchTab" data-tab="upcoming">⏳ 即将</view>
+    <view class="tab-item {{activeTab === 'upsets' ? 'active' : ''}}" bindtap="switchTab" data-tab="upsets">😱 冷门</view>
+  </view>
+
+  <!-- 今日比赛 -->
+  <view wx:if="{{activeTab === 'today'}}">
+    <view class="section-title">今日焦点</view>
+    <view wx:for="{{todayMatches}}" wx:key="id" class="card {{item.status === 'today' ? 'card-live' : ''}}">
+      <!-- 已结束 -->
+      <view wx:if="{{item.status === 'finished'}}">
+        <view class="match-row">
+          <view class="team">
+            <text class="team-flag">{{item.homeFlag}}</text>
+            <text class="team-name">{{item.home}}</text>
+          </view>
+          <view class="score">{{item.homeScore}} - {{item.awayScore}}</view>
+          <view class="team away">
+            <text class="team-flag">{{item.awayFlag}}</text>
+            <text class="team-name">{{item.away}}</text>
+          </view>
+        </view>
+        <view class="match-info">
+          <text>{{item.group}}组 · {{item.venue}}</text>
+          <view>
+            <text class="tag tag-finished">已结束</text>
+            <text wx:if="{{item.isUpset}}" class="tag tag-upset">冷门</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 进行中 -->
+      <view wx:elif="{{item.status === 'today'}}">
+        <view class="match-row">
+          <view class="team">
+            <text class="team-flag">{{item.homeFlag}}</text>
+            <text class="team-name">{{item.home}}</text>
+          </view>
+          <view class="score">{{item.homeScore !== null ? item.homeScore : '?'}} - {{item.awayScore !== null ? item.awayScore : '?'}}</view>
+          <view class="team away">
+            <text class="team-flag">{{item.awayFlag}}</text>
+            <text class="team-name">{{item.away}}</text>
+          </view>
+        </view>
+        <view class="match-info">
+          <text>{{item.group}}组 · {{item.venue}}</text>
+          <text class="tag tag-live">🔴 进行中</text>
+        </view>
+      </view>
+
+      <!-- 待赛 -->
+      <view wx:else>
+        <view class="match-row">
+          <view class="team">
+            <text class="team-flag">{{item.homeFlag}}</text>
+            <text class="team-name">{{item.home}}</text>
+          </view>
+          <view class="score score-predicted">{{item.prediction.homeGoals}} - {{item.prediction.awayGoals}}</view>
+          <view class="team away">
+            <text class="team-flag">{{item.awayFlag}}</text>
+            <text class="team-name">{{item.away}}</text>
+          </view>
+        </view>
+        <view class="match-info">
+          <text>{{item.group}}组 · {{item.venue}} · {{item.time}}</text>
+          <text class="tag tag-predict">🤖 预测</text>
+          <text class="confidence conf-{{item.prediction.confidenceLevel}}">{{item.prediction.confidence}}%</text>
+        </view>
+        <view class="prediction-reason">{{item.prediction.reason}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 即将开始 -->
+  <view wx:if="{{activeTab === 'upcoming'}}">
+    <view class="section-title">即将开赛</view>
+    <view wx:for="{{upcomingMatches}}" wx:key="id" class="card">
+      <view class="match-row">
+        <view class="team">
+          <text class="team-flag">{{item.homeFlag}}</text>
+          <text class="team-name">{{item.home}}</text>
+        </view>
+        <view class="score score-predicted">{{item.prediction.homeGoals}} - {{item.prediction.awayGoals}}</view>
+        <view class="team away">
+          <text class="team-flag">{{item.awayFlag}}</text>
+          <text class="team-name">{{item.away}}</text>
+        </view>
+      </view>
+      <view class="match-info">
+        <text>{{item.date}} {{item.time}} · {{item.group}}组</text>
+        <text class="tag tag-predict">🤖 预测</text>
+        <text class="confidence conf-{{item.prediction.confidenceLevel}}">{{item.prediction.confidence}}%</text>
+      </view>
+      <view class="prediction-reason">{{item.prediction.reason}}</view>
+    </view>
+  </view>
+
+  <!-- 冷门回顾 -->
+  <view wx:if="{{activeTab === 'upsets'}}">
+    <view class="section-title">本轮冷门</view>
+    <view wx:if="{{recentUpsets.length === 0}}" class="empty-state">暂无冷门 🤷</view>
+    <view wx:for="{{recentUpsets}}" wx:key="id" class="card" style="border-color: #ff6b6b;">
+      <view class="match-row">
+        <view class="team">
+          <text class="team-flag">{{item.homeFlag}}</text>
+          <text class="team-name">{{item.home}}</text>
+        </view>
+        <view class="score">{{item.homeScore}} - {{item.awayScore}}</view>
+        <view class="team away">
+          <text class="team-flag">{{item.awayFlag}}</text>
+          <text class="team-name">{{item.away}}</text>
+        </view>
+      </view>
+      <view class="match-info">
+        <text>{{item.group}}组 · {{item.date}}</text>
+        <text class="tag tag-upset">😱 冷门</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 冠军预测 -->
+  <view class="section-title">👑 冠军预测</view>
+  <view class="card card-gold champion-box" wx:if="{{champion}}">
+    <view class="champion-flag">{{champion.flag}}</view>
+    <view class="champion-name">{{champion.champion}}</view>
+    <view class="champion-sub">{{champion.reason}}</view>
+    <view class="champion-sub" style="margin-top: 20rpx;">
+      <text style="color: #ffd700;">热门候选：</text>
+      <text wx:for="{{champion.candidates}}" wx:key="name">{{item.flag}} {{item.name}} </text>
+    </view>
+  </view>
+</view>
