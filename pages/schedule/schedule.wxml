@@ -1,0 +1,66 @@
+<!--pages/schedule/schedule.wxml-->
+<view class="container">
+  <view class="section-title">📋 完整赛程</view>
+
+  <!-- 日期选择 -->
+  <scroll-view scroll-x class="date-scroll">
+    <view wx:for="{{dates}}" wx:key="*this" class="date-chip {{selectedDate === item ? 'active' : ''}}" bindtap="selectDate" data-date="{{item}}">
+      {{item}}
+    </view>
+  </scroll-view>
+
+  <!-- 筛选 -->
+  <view class="tab-bar" style="margin-top: 20rpx;">
+    <view class="tab-item {{filter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">全部</view>
+    <view class="tab-item {{filter === 'finished' ? 'active' : ''}}" bindtap="setFilter" data-filter="finished">已结束</view>
+    <view class="tab-item {{filter === 'upcoming' ? 'active' : ''}}" bindtap="setFilter" data-filter="upcoming">待赛</view>
+  </view>
+
+  <!-- 比赛列表 -->
+  <block wx:for="{{matches}}" wx:key="id">
+    <view wx:if="{{item.date === selectedDate && (filter === 'all' || (filter === 'finished' && item.status === 'finished') || (filter === 'upcoming' && (item.status === 'upcoming' || item.status === 'today')))}}" class="card">
+      <!-- 已结束 -->
+      <view wx:if="{{item.status === 'finished'}}">
+        <view class="match-row">
+          <view class="team">
+            <text class="team-flag">{{item.homeFlag}}</text>
+            <text class="team-name">{{item.home}}</text>
+          </view>
+          <view class="score">{{item.homeScore}} - {{item.awayScore}}</view>
+          <view class="team away">
+            <text class="team-flag">{{item.awayFlag}}</text>
+            <text class="team-name">{{item.away}}</text>
+          </view>
+        </view>
+        <view class="match-info">
+          <text>{{item.group}}组 · {{item.time}} · {{item.venue}}</text>
+          <view>
+            <text class="tag tag-finished">已结束</text>
+            <text wx:if="{{item.isUpset}}" class="tag tag-upset">冷门</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 今日/待赛 -->
+      <view wx:else>
+        <view class="match-row">
+          <view class="team">
+            <text class="team-flag">{{item.homeFlag}}</text>
+            <text class="team-name">{{item.home}}</text>
+          </view>
+          <view class="score score-predicted">{{item.prediction.homeGoals}} - {{item.prediction.awayGoals}}</view>
+          <view class="team away">
+            <text class="team-flag">{{item.awayFlag}}</text>
+            <text class="team-name">{{item.away}}</text>
+          </view>
+        </view>
+        <view class="match-info">
+          <text>{{item.group}}组 · {{item.time}} · {{item.venue}}</text>
+          <text class="tag tag-predict">🤖 预测</text>
+          <text class="confidence conf-{{item.prediction.confidenceLevel}}">{{item.prediction.confidence}}%</text>
+        </view>
+        <view class="prediction-reason">{{item.prediction.reason}}</view>
+      </view>
+    </view>
+  </block>
+</view>
