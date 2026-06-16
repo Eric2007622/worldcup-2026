@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/schedule/schedule",
+    "pages/predictions/predictions",
+    "pages/groups/groups"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#0a0e1a",
+    "navigationBarTitleText": "世界杯预测",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0a0e1a"
+  },
+  "tabBar": {
+    "color": "#5a6580",
+    "selectedColor": "#ffd700",
+    "backgroundColor": "#0a0e1a",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/schedule/schedule",
+        "text": "赛程",
+        "iconPath": "static/tab-schedule.png",
+        "selectedIconPath": "static/tab-schedule-active.png"
+      },
+      {
+        "pagePath": "pages/predictions/predictions",
+        "text": "预测",
+        "iconPath": "static/tab-predict.png",
+        "selectedIconPath": "static/tab-predict-active.png"
+      },
+      {
+        "pagePath": "pages/groups/groups",
+        "text": "积分",
+        "iconPath": "static/tab-group.png",
+        "selectedIconPath": "static/tab-group-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "cloud": {
+    "env": "worldcup-prod",
+    "traceUser": true
+  },
+  "style": "v2"
+}
