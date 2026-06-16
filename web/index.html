@@ -92,6 +92,15 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
 .lb-avatar{font-size:18px}.lb-name{flex:1;font-size:13px}
 .lb-value{font-size:13px;font-weight:700;text-align:right;min-width:60px}
 .lb-value.coins{color:#ffd700}.lb-value.wr{color:#4caf50}.lb-value.profit-pos{color:#4caf50}.lb-value.profit-neg{color:#f44336}
+/* Toast 通知 */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);background:#141929;border:2px solid #4caf50;border-radius:16px;padding:24px 32px;z-index:300;text-align:center;opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.toast-icon{font-size:40px;margin-bottom:8px}
+.toast-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+.toast-sub{font-size:13px;color:#8892b0}
+.toast-ok{margin-top:12px;padding:8px 24px;background:#4caf50;color:#fff;border:none;border-radius:20px;font-size:13px;cursor:pointer}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:299;opacity:0;transition:.3s;pointer-events:none}
+.overlay.show{opacity:1;pointer-events:auto}
 </style>
 </head>
 <body>
@@ -433,6 +442,18 @@ function rFriends() {
 }
 
 
+function showToast(icon, title, sub) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastSub').textContent = sub || '';
+  document.getElementById('toastBox').classList.add('show');
+  document.getElementById('toastOverlay').classList.add('show');
+}
+function hideToast() {
+  document.getElementById('toastBox').classList.remove('show');
+  document.getElementById('toastOverlay').classList.remove('show');
+}
+
 function copyInvite() {
   var link = window.location.origin + '/?invite=' + (currentUser.inviteCode || '');
   if (navigator.clipboard) {
@@ -549,5 +570,12 @@ if (currentUser) {
 loadData();
 setInterval(function(){loadData();loadBets()}, 60000);
 </script>
+<div class="overlay" id="toastOverlay" onclick="hideToast()"></div>
+<div class="toast" id="toastBox">
+  <div class="toast-icon" id="toastIcon">✅</div>
+  <div class="toast-title" id="toastTitle">成功</div>
+  <div class="toast-sub" id="toastSub"></div>
+  <button class="toast-ok" onclick="hideToast()">好的</button>
+</div>
 </body>
 </html>
