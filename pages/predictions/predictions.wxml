@@ -1,0 +1,59 @@
+<!--pages/predictions/predictions.wxml-->
+<view class="container">
+  <view class="section-title">🤖 AI预测</view>
+
+  <!-- 冠军预测 -->
+  <view class="card card-gold champion-box" wx:if="{{champion}}">
+    <view style="font-size: 28rpx; color: #ffd700; font-weight: 700;">👑 冠军预测</view>
+    <view class="champion-flag">{{champion.flag}}</view>
+    <view class="champion-name">{{champion.champion}}</view>
+    <view class="champion-sub">{{champion.reason}}</view>
+    <view class="champion-sub" style="margin-top: 16rpx;">
+      <text style="color: #ffd700;">夺冠概率：</text>
+      <text style="color: #fff; font-weight: 700;">{{champion.argentinaChance}}%</text>
+    </view>
+    <view class="candidate-list">
+      <view wx:for="{{champion.candidates}}" wx:key="name" class="candidate-item">
+        <text>{{item.flag}} {{item.name}}</text>
+        <text style="color: #4a9eff;">{{item.chance}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 排序 -->
+  <view class="tab-bar">
+    <view class="tab-item {{sortBy === 'confidence' ? 'active' : ''}}" bindtap="switchSort" data-sort="confidence">按置信度</view>
+    <view class="tab-item {{sortBy === 'date' ? 'active' : ''}}" bindtap="switchSort" data-sort="date">按时间</view>
+  </view>
+
+  <!-- 预测列表 -->
+  <view wx:for="{{predictions}}" wx:key="id" class="card">
+    <view class="match-row">
+      <view class="team">
+        <text class="team-flag">{{item.homeFlag}}</text>
+        <text class="team-name">{{item.home}}</text>
+      </view>
+      <view class="score score-predicted">{{item.prediction.homeGoals}} - {{item.prediction.awayGoals}}</view>
+      <view class="team away">
+        <text class="team-flag">{{item.awayFlag}}</text>
+        <text class="team-name">{{item.away}}</text>
+      </view>
+    </view>
+    <view class="match-info">
+      <text>{{item.date}} {{item.time}} · {{item.group}}组</text>
+      <text class="confidence conf-{{item.prediction.confidenceLevel}}">置信度 {{item.prediction.confidence}}%</text>
+    </view>
+    <view class="prediction-reason">{{item.prediction.reason}}</view>
+
+    <!-- 预测结果标识 -->
+    <view class="predict-result">
+      <text wx:if="{{item.prediction.result === 'home'}}" class="result-tag result-win">{{item.home}} 胜</text>
+      <text wx:elif="{{item.prediction.result === 'draw'}}" class="result-tag result-draw">平局</text>
+      <text wx:else class="result-tag result-win">{{item.away}} 胜</text>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{predictions.length === 0}}">
+    暂无预测数据
+  </view>
+</view>
