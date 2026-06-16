@@ -308,17 +308,28 @@ async function loadBets() {
 
 // ===== 数据加载 =====
 function loadData() {
+  var timeout = setTimeout(function() {
+    console.log('load timeout, rendering anyway');
+    render();
+  }, 8000);
+
   Promise.all([fetch(API+'/api/matches'), fetch(API+'/api/standings')])
     .then(function(responses) {
       return Promise.all([responses[0].json(), responses[1].json()]);
     })
     .then(function(data) {
+      clearTimeout(timeout);
       allMatches = data[0].matches || [];
       allStandings = data[1].groups || {};
       render();
-      document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+      var el = document.getElementById('updateTime');
+      if (el) el.textContent = new Date().toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'});
     })
-    .catch(function(e) { console.error('load error:', e); render(); });
+    .catch(function(e) {
+      clearTimeout(timeout);
+      console.error('load error:', e);
+      render();
+    });
 }
 
 // ===== 球队数据 =====
@@ -336,13 +347,18 @@ function switchTab(t){currentTab=t;document.querySelectorAll('#mainTabs .tab').f
 
 // ===== 渲染 =====
 function render(){
-  var h='';
-  if(currentPage==='main'){if(currentTab==='today')h=rToday();else if(currentTab==='upcoming')h=rUpcoming();else if(currentTab==='standings')h=rStandings();else if(currentTab==='champion')h=rChamp()}
-  else if(currentPage==='mybets')h=rMyBets();
-  else if(currentPage==='friends')h=rFriends();
-  else if(currentPage==='leaderboard')h=rLeaderboard();
-  else if(currentPage==='history')h=rHistory();
-  document.getElementById('content').innerHTML=h;
+  try {
+    var h='';
+    if(currentPage==='main'){if(currentTab==='today')h=rToday();else if(currentTab==='upcoming')h=rUpcoming();else if(currentTab==='standings')h=rStandings();else if(currentTab==='champion')h=rChamp()}
+    else if(currentPage==='mybets')h=rMyBets();
+    else if(currentPage==='friends')h=rFriends();
+    else if(currentPage==='leaderboard')h=rLeaderboard();
+    else if(currentPage==='history')h=rHistory();
+    if (h) document.getElementById('content').innerHTML=h;
+  } catch(e) {
+    console.error('render error:', e);
+    document.getElementById('content').innerHTML='<div class="empty">加载失败,请刷新页面</div>';
+  }
 }
 
 function rToday(){
