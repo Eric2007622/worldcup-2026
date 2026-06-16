@@ -285,9 +285,19 @@ app.get('/api/standings', async (req, res) => {
 
 // 通过邀请码注册
 app.post('/api/user/invite-login', (req, res) => {
-  const { nickname, avatar, inviteCode } = req.body
+  const { nickname, avatar, inviteCode, wechatId } = req.body
   if (!nickname) return res.status(400).json({ error: '请输入昵称' })
+  if (!wechatId) return res.status(400).json({ error: '请输入微信号' })
   const db = readDB()
+
+  // 通过微信号查找已有用户（登录）
+  let user = Object.values(db.users).find(u => u.wechatId === wechatId)
+  if (user) {
+    user.nickname = nickname || user.nickname
+    user.avatar = avatar || user.avatar
+    writeDB(db)
+    return res.json({ user, login: true })
+  }
 
   // 查找邀请人
   let inviter = null
@@ -295,23 +305,14 @@ app.post('/api/user/invite-login', (req, res) => {
     inviter = Object.values(db.users).find(u => u.inviteCode === inviteCode)
   }
 
-  // 检查昵称是否已存在
-  let user = Object.values(db.users).find(u => u.nickname === nickname)
-  if (user) {
-    // 已有用户，更新头像
-    user.avatar = avatar || user.avatar
-    writeDB(db)
-    return res.json({ user, inviter: inviter ? inviter.nickname : null })
-  }
-
   // 创建新用户
   const uid = 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
-  const code = nickname.charCodeAt(0).toString(16) + Math.random().toString(36).substr(2, 6).toUpperCase()
+  const invCode = wechatId.substr(0, 3).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase()
 
   user = {
     uid, nickname, avatar: avatar || '\ud83d\ude0e',
     coins: 1000, totalBets: 0, wins: 0, losses: 0, profit: 0,
-    inviteCode: code,
+    inviteCode: invCode, wechatId: wechatId,
     invitedBy: inviter ? inviter.uid : null,
     friends: [],
     createdAt: new Date().toISOString()
@@ -319,11 +320,9 @@ app.post('/api/user/invite-login', (req, res) => {
 
   db.users[uid] = user
 
-  // 建立好友关系
   if (inviter) {
     if (!inviter.friends) inviter.friends = []
     if (!inviter.friends.includes(uid)) inviter.friends.push(uid)
-    // 邀请奖励：邀请人+200金币
     inviter.coins += 200
     inviter.inviteReward = (inviter.inviteReward || 0) + 200
   }
