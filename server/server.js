@@ -279,6 +279,108 @@ app.get('/api/standings', async (req, res) => {
   } catch (err) { res.status(500).json({ error: '获取积分榜失败' }) }
 })
 
+
+
+// ===== 邀请系统 =====
+
+// 通过邀请码注册
+app.post('/api/user/invite-login', (req, res) => {
+  const { nickname, avatar, inviteCode } = req.body
+  if (!nickname) return res.status(400).json({ error: '请输入昵称' })
+  const db = readDB()
+
+  // 查找邀请人
+  let inviter = null
+  if (inviteCode) {
+    inviter = Object.values(db.users).find(u => u.inviteCode === inviteCode)
+  }
+
+  // 检查昵称是否已存在
+  let user = Object.values(db.users).find(u => u.nickname === nickname)
+  if (user) {
+    // 已有用户，更新头像
+    user.avatar = avatar || user.avatar
+    writeDB(db)
+    return res.json({ user, inviter: inviter ? inviter.nickname : null })
+  }
+
+  // 创建新用户
+  const uid = 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+  const code = nickname.charCodeAt(0).toString(16) + Math.random().toString(36).substr(2, 6).toUpperCase()
+
+  user = {
+    uid, nickname, avatar: avatar || '\ud83d\ude0e',
+    coins: 1000, totalBets: 0, wins: 0, losses: 0, profit: 0,
+    inviteCode: code,
+    invitedBy: inviter ? inviter.uid : null,
+    friends: [],
+    createdAt: new Date().toISOString()
+  }
+
+  db.users[uid] = user
+
+  // 建立好友关系
+  if (inviter) {
+    if (!inviter.friends) inviter.friends = []
+    if (!inviter.friends.includes(uid)) inviter.friends.push(uid)
+    // 邀请奖励：邀请人+200金币
+    inviter.coins += 200
+    inviter.inviteReward = (inviter.inviteReward || 0) + 200
+  }
+
+  writeDB(db)
+  res.json({ user, inviter: inviter ? inviter.nickname : null, bonus: inviter ? 200 : 0 })
+})
+
+// 获取用户的邀请信息
+app.get('/api/user/:uid/invite', (req, res) => {
+  const db = readDB()
+  const user = db.users[req.params.uid]
+  if (!user) return res.status(404).json({ error: '用户不存在' })
+
+  const friends = (user.friends || []).map(fid => {
+    const f = db.users[fid]
+    if (!f) return null
+    return { nickname: f.nickname, avatar: f.avatar, coins: f.coins, wins: f.wins, totalBets: f.totalBets, profit: f.profit }
+  }).filter(Boolean)
+
+  const inviter = user.invitedBy ? db.users[user.invitedBy] : null
+
+  res.json({
+    inviteCode: user.inviteCode,
+    inviteLink: '/?invite=' + user.inviteCode,
+    inviteReward: user.inviteReward || 0,
+    friendsCount: friends.length,
+    friends,
+    inviterName: inviter ? inviter.nickname : null
+  })
+})
+
+// 好友排行榜
+app.get('/api/leaderboard/friends/:uid', (req, res) => {
+  const db = readDB()
+  const user = db.users[req.params.uid]
+  if (!user) return res.status(404).json({ error: '用户不存在' })
+
+  const uids = [user.uid, ...(user.friends || [])]
+  const friends = uids.map(uid => db.users[uid]).filter(Boolean)
+
+  const byCoins = friends.slice().sort((a, b) => b.coins - a.coins).map((u, i) => ({
+    rank: i + 1, nickname: u.nickname, avatar: u.avatar, coins: u.coins, wins: u.wins, totalBets: u.totalBets,
+    winRate: u.totalBets > 0 ? Math.round(u.wins / u.totalBets * 100) : 0, isMe: u.uid === user.uid
+  }))
+
+  const byWinRate = friends.filter(u => u.totalBets >= 1).sort((a, b) => {
+    const rA = a.wins / a.totalBets, rB = b.wins / b.totalBets
+    return rB - rA || b.wins - a.wins
+  }).map((u, i) => ({
+    rank: i + 1, nickname: u.nickname, avatar: u.avatar,
+    winRate: Math.round(u.wins / u.totalBets * 100), wins: u.wins, totalBets: u.totalBets, isMe: u.uid === user.uid
+  }))
+
+  res.json({ byCoins, byWinRate })
+})
+
 app.get('/api/health', (req, res) => {
   const db = readDB()
   res.json({ status: 'ok', source: 'OpenLigaDB', users: Object.keys(db.users).length, bets: db.bets.length })

@@ -118,7 +118,8 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
 <div class="bottom-nav">
   <div class="nav-item active" onclick="pageNav('main')"><span class="icon">⚽</span>赛事</div>
   <div class="nav-item" onclick="pageNav('mybets')"><span class="icon">🎯</span>竞猜</div>
-  <div class="nav-item" onclick="pageNav('leaderboard')"><span class="icon">🏆</span>排行榜</div>
+  <div class="nav-item" onclick="pageNav('friends')"><span class="icon">👥</span>好友</div>
+  <div class="nav-item" onclick="pageNav('leaderboard')"><span class="icon">🏆</span>排行</div>
   <div class="nav-item" onclick="pageNav('history')"><span class="icon">📊</span>战绩</div>
 </div>
 
@@ -250,7 +251,7 @@ function getToday(){var n=new Date();return new Date(n.getTime()+8*3600000).toIS
 function calcOdds(ch,p){var base;if(p.res==='home')base={home:1.5,draw:3.5,away:6.0};else if(p.res==='away')base={home:6.0,draw:3.5,away:1.5};else base={home:2.8,draw:2.5,away:2.8};var f=p.conf/100;if(ch===p.res)return Math.max(1.1,base[ch]*(1.5-f));return base[ch]*(0.8+f*0.3)}
 
 // ===== 导航 =====
-function pageNav(p){currentPage=p;document.querySelectorAll('.nav-item').forEach(function(n,i){n.classList.toggle('active',['main','mybets','leaderboard','history'][i]===p)});if(p==='main')document.getElementById('mainTabs').classList.remove('hidden');else document.getElementById('mainTabs').classList.add('hidden');render()}
+function pageNav(p){currentPage=p;document.querySelectorAll('.nav-item').forEach(function(n,i){n.classList.toggle('active',['main','mybets','friends','leaderboard','history'][i]===p)});if(p==='main')document.getElementById('mainTabs').classList.remove('hidden');else document.getElementById('mainTabs').classList.add('hidden');render()}
 function switchTab(t){currentTab=t;document.querySelectorAll('#mainTabs .tab').forEach(function(el,i){el.classList.toggle('active',['today','upcoming','standings','champion'][i]===t)});render()}
 
 // ===== 渲染 =====
@@ -258,6 +259,7 @@ function render(){
   var h='';
   if(currentPage==='main'){if(currentTab==='today')h=rToday();else if(currentTab==='upcoming')h=rUpcoming();else if(currentTab==='standings')h=rStandings();else if(currentTab==='champion')h=rChamp()}
   else if(currentPage==='mybets')h=rMyBets();
+  else if(currentPage==='friends')h=rFriends();
   else if(currentPage==='leaderboard')h=rLeaderboard();
   else if(currentPage==='history')h=rHistory();
   document.getElementById('content').innerHTML=h;
@@ -347,6 +349,90 @@ async function loadLB() {
 
 function switchLB(t){lbTab=t;lbData=null;render()}
 
+
+
+// ===== 好友系统 =====
+var friendsData = null;
+
+function rFriends() {
+  if (!currentUser) return '<div class="empty">请先登录</div>';
+  // 异步加载好友数据
+  setTimeout(loadFriendsData, 10);
+  var h = '<div class="section">邀请好友</div>';
+  // 邀请卡
+  var inviteCode = currentUser.inviteCode || '';
+  var inviteLink = window.location.origin + '/?invite=' + inviteCode;
+  h += '<div class="card" style="text-align:center;padding:16px">';
+  h += '<div style="font-size:13px;color:#8892b0;margin-bottom:8px">分享邀请链接给好友，双方都获得奖励</div>';
+  h += '<div style="background:#0d1225;padding:10px;border-radius:8px;margin-bottom:8px">';
+  h += '<div style="font-size:11px;color:#5a6580">你的邀请码</div>';
+  h += '<div style="font-size:24px;font-weight:800;color:#ffd700;letter-spacing:2px">' + (inviteCode || '---') + '</div>';
+  h += '</div>';
+  h += '<button onclick="copyInvite()" style="padding:8px 20px;background:linear-gradient(135deg,#07c160,#06ad56);color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;margin:4px">复制邀请链接</button>';
+  h += '<button onclick="shareInvite()" style="padding:8px 20px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#0a0e1a;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;margin:4px">分享到微信</button>';
+  h += '<div style="font-size:11px;color:#5a6580;margin-top:8px">每邀请1位好友，你获得 <span style="color:#ffd700">200金币</span> 奖励</div>';
+  h += '</div>';
+
+  // 好友排行
+  h += '<div class="section">好友排行</div>';
+  h += '<div id="friendsRank"><div style="text-align:center;padding:20px;color:#5a6580">加载中...</div></div>';
+  return h;
+}
+
+function copyInvite() {
+  var link = window.location.origin + '/?invite=' + (currentUser.inviteCode || '');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(function(){alert('已复制邀请链接！分享给微信好友即可')});
+  } else {
+    var input = document.createElement('input');
+    input.value = link;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    alert('已复制邀请链接！');
+  }
+}
+
+function shareInvite() {
+  var link = window.location.origin + '/?invite=' + (currentUser.inviteCode || '');
+  var text = '我在2026世界杯AI预测中心等你！快来一起竞猜赢金币 🏆';
+  // 尝试调用微信JS-SDK分享（如果在微信浏览器中）
+  if (navigator.share) {
+    navigator.share({title: '世界杯AI预测', text: text, url: link});
+  } else {
+    // 复制到剪贴板
+    var fullText = text + '\n' + link;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(fullText).then(function(){alert('已复制分享内容！打开微信粘贴发送给好友')});
+    } else {
+      prompt('复制以下内容发送给微信好友:', fullText);
+    }
+  }
+}
+
+function loadFriendsData() {
+  if (!currentUser) return;
+  fetch(API + '/api/leaderboard/friends/' + currentUser.uid)
+    .then(function(r){return r.json()})
+    .then(function(data) {
+      friendsData = data;
+      var el = document.getElementById('friendsRank');
+      if (!el) return;
+      var h = '';
+      var list = data.byCoins || [];
+      if (!list.length) { el.innerHTML = '<div class="empty">还没有好友，快邀请吧！</div>'; return; }
+      h += '<div class="card" style="padding:4px">';
+      list.forEach(function(u) {
+        var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
+        var me = u.isMe ? ' style="background:#1a2240"' : '';
+        h += '<div class="lb-row"' + me + '><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + u.avatar + '</div><div class="lb-name">' + u.nickname + (u.isMe?' (我)':'') + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    }).catch(function(){});
+}
+
 function rHistory(){
   var settled=myBets.filter(function(b){return b.status==='won'||b.status==='lost'}).reverse();
   var wins=myBets.filter(function(b){return b.status==='won'}).length;
@@ -376,7 +462,18 @@ function showGroup(el,k){document.querySelectorAll('.gtab').forEach(function(t){
 
 // ===== 启动 =====
 currentUser = getUser();
-if (currentUser) { updateUserUI(); loadBets(); } else { showLogin(); }
+// 检测URL邀请码
+var urlParams = new URLSearchParams(window.location.search);
+var inviteFromUrl = urlParams.get('invite');
+if (inviteFromUrl && !currentUser) {
+  // 有邀请码但未登录，显示登录弹窗
+  showLogin();
+} else if (currentUser) {
+  updateUserUI();
+  loadBets();
+} else {
+  showLogin();
+}
 loadData();
 setInterval(function(){loadData();loadBets()}, 60000);
 </script>
