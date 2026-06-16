@@ -153,8 +153,8 @@ app.get('/api/user/search/:kw', async (req, res) => {
     const rows = await query('SELECT * FROM users WHERE wechat_id ILIKE $1 OR nickname ILIKE $1 LIMIT 10', [kw])
     return res.json({ results: rows.map(u => ({ uid: u.uid, nickname: u.nickname, avatar: u.avatar, wechatId: u.wechat_id || '', coins: u.coins })) })
   }
-  const kw = req.params.keyword.toLowerCase()
-  const results = Object.values(memDB.users).filter(u => (u.wechat_id && u.wechat_id.toLowerCase().includes(kw)) || u.nickname.toLowerCase().includes(kw)).slice(0, 10).map(u => ({ uid: u.uid, nickname: u.nickname, avatar: u.avatar, wechatId: u.wechat_id || '', coins: u.coins }))
+  const kw2 = req.params.keyword.toLowerCase()
+  const results = Object.values(memDB.users).filter(u => (u.wechat_id && u.wechat_id.toLowerCase().includes(kw2)) || u.nickname.toLowerCase().includes(kw2)).slice(0, 10).map(u => ({ uid: u.uid, nickname: u.nickname, avatar: u.avatar, wechatId: u.wechat_id || '', coins: u.coins }))
   res.json({ results })
 })
 
