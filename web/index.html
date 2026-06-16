@@ -265,11 +265,6 @@ function doLogin() {
     showError('❌', '登录失败', e.message || '请重试');
   });
 }
-  }).catch(function(e) {
-    showToast('❌', '登录失败', e.message || '请重试');
-    setTimeout(showLogin, 1500);
-  });
-}
 
 // ===== 下注 =====
 async function confirmBet(matchId) {
