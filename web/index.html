@@ -207,7 +207,7 @@ function updateUserUI() {
   }
 }
 
-function showLogin() { window.location.href = '/register.html'; }
+function showLogin() { document.getElementById('loginModal').style.display='flex'; }
 function showProfile() {
   if (!currentUser) { showLogin(); return; }
   document.getElementById('profileAvatar').textContent = currentUser.avatar || '😎';
@@ -314,14 +314,18 @@ async function loadBets() {
 }
 
 // ===== 数据加载 =====
-async function loadData() {
-  try {
-    var [mr, sr] = await Promise.all([fetch(API+'/api/matches'), fetch(API+'/api/standings')]);
-    allMatches = (await mr.json()).matches || [];
-    allStandings = (await sr.json()).groups || {};
-  } catch(e) { console.error(e); }
-  render();
-  document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+function loadData() {
+  Promise.all([fetch(API+'/api/matches'), fetch(API+'/api/standings')])
+    .then(function(responses) {
+      return Promise.all([responses[0].json(), responses[1].json()]);
+    })
+    .then(function(data) {
+      allMatches = data[0].matches || [];
+      allStandings = data[1].groups || {};
+      render();
+      document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    })
+    .catch(function(e) { console.error('load error:', e); render(); });
 }
 
 // ===== 球队数据 =====
@@ -639,6 +643,17 @@ function showGroup(el,k){document.querySelectorAll('.gtab').forEach(function(t){
 
 // ===== 启动 =====
 currentUser = getUser();
+if (currentUser) {
+  updateUserUI();
+  loadBets();
+  fetch(API + '/api/user/' + currentUser.uid).then(function(r) {
+    if (r.ok) return r.json(); return null;
+  }).then(function(d) {
+    if (d && d.user) { currentUser = d.user; saveUser(currentUser); updateUserUI(); }
+  }).catch(function(){});
+} else {
+  showLogin();
+}
 var urlParams = new URLSearchParams(window.location.search);
 var inviteFromUrl = urlParams.get('invite');
 
