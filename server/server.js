@@ -442,6 +442,36 @@ app.post('/api/user/:uid/add-friend', (req, res) => {
   res.json({ friend: { nickname: friend.nickname, avatar: friend.avatar, wechatId: friend.wechatId || '' } })
 })
 
+
+// 输入邀请码（被邀请人使用）
+app.post('/api/user/:uid/use-invite', (req, res) => {
+  const { inviteCode } = req.body
+  if (!inviteCode) return res.status(400).json({ error: '请输入邀请码' })
+  const db = readDB()
+  const user = db.users[req.params.uid]
+  if (!user) return res.status(404).json({ error: '用户不存在' })
+  if (user.invitedBy) return res.status(400).json({ error: '你已经使用过邀请码了' })
+
+  const inviter = Object.values(db.users).find(u => u.inviteCode === inviteCode)
+  if (!inviter) return res.status(404).json({ error: '邀请码无效' })
+  if (inviter.uid === user.uid) return res.status(400).json({ error: '不能使用自己的邀请码' })
+
+  // 绑定关系
+  user.invitedBy = inviter.uid
+  if (!inviter.friends) inviter.friends = []
+  if (!inviter.friends.includes(user.uid)) inviter.friends.push(user.uid)
+  if (!user.friends) user.friends = []
+  if (!user.friends.includes(inviter.uid)) user.friends.push(inviter.uid)
+
+  // 双方奖励
+  user.coins += 200
+  inviter.coins += 200
+  inviter.inviteReward = (inviter.inviteReward || 0) + 200
+
+  writeDB(db)
+  res.json({ user, inviterName: inviter.nickname, bonus: 200 })
+})
+
 app.get('/api/health', (req, res) => {
   const db = readDB()
   res.json({ status: 'ok', source: 'OpenLigaDB', users: Object.keys(db.users).length, bets: db.bets.length })
