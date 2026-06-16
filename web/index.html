@@ -325,7 +325,7 @@ function claimDaily() {
     .catch(function() { showToast('', '领取失败', '网络错误'); });
 }
 
-function loadBets() {
+async function loadBets() {
   if (!currentUser) return;
   try {
     var res = await fetch(API + '/api/bets/' + currentUser.uid);
