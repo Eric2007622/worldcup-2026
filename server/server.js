@@ -317,6 +317,23 @@ app.get('/api/standings', async (req, res) => {
   try { const raw = await getRawData(); res.json({groups:computeStandings(raw.map(convertMatch))}) } catch(e) { res.status(500).json({error:'获取失败'}) }
 })
 
+
+// 通过微信号登录
+app.post('/api/user/login-by-wechat', async (req, res) => {
+  const { wechatId } = req.body
+  if (!wechatId) return res.status(400).json({ error: '请输入微信号' })
+
+  if (pool) {
+    const rows = await query('SELECT * FROM users WHERE wechat_id = $1', [wechatId])
+    if (!rows.length) return res.status(404).json({ error: '该微信号未注册,请先注册' })
+    return res.json({ user: dbUser(rows[0]) })
+  }
+
+  const user = Object.values(memDB.users).find(u => u.wechat_id === wechatId)
+  if (!user) return res.status(404).json({ error: '该微信号未注册' })
+  res.json({ user })
+})
+
 app.get('/api/health', async (req, res) => {
   const userCount = pool ? (await query('SELECT COUNT(*) as c FROM users'))[0].c : Object.keys(memDB.users).length
   const betCount = pool ? (await query('SELECT COUNT(*) as c FROM bets'))[0].c : memDB.bets.length
