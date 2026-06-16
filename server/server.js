@@ -174,9 +174,12 @@ app.post('/api/bet', async (req, res) => {
     const existing = await query('SELECT id FROM bets WHERE uid=$1 AND match_id=$2 AND status=$3', [uid, matchId, 'pending'])
     if (existing.length) return res.status(400).json({ error: '已下注过这场比赛' })
 
-    const raw = cachedData || []
+    let raw = cachedData
+    if (!raw || !raw.length) {
+      try { raw = await getRawData() } catch(e) { raw = [] }
+    }
     const match = raw.find(m => m.matchID === matchId)
-    if (!match) return res.status(400).json({ error: '比赛不存在' })
+    if (!match) return res.status(400).json({ error: '比赛不存在(ID:' + matchId + ')' })
 
     const converted = convertMatch(match)
     const odds = calcOdds(choice, converted.home, converted.away)
@@ -205,7 +208,10 @@ app.get('/api/bets/:uid', async (req, res) => {
 // 结算
 app.post('/api/settle', async (req, res) => {
   if (!pool) return res.json({ settled: 0 })
-  const raw = cachedData || []
+  let raw = cachedData
+  if (!raw || !raw.length) {
+    try { raw = await getRawData() } catch(e) { raw = [] }
+  }
   const pending = await query('SELECT * FROM bets WHERE status=$1', ['pending'])
   let settled = 0
 
