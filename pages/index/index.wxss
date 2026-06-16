@@ -1,0 +1,26 @@
+/* pages/index/index.wxss */
+.header {
+  text-align: center;
+  padding: 40rpx 0 24rpx;
+}
+.header-title {
+  font-size: 44rpx;
+  font-weight: 800;
+  background: linear-gradient(90deg, #ffd700, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header-sub {
+  color: #8892b0;
+  font-size: 26rpx;
+  margin-top: 8rpx;
+}
+.header-update {
+  color: #4a9eff;
+  font-size: 22rpx;
+  margin-top: 12rpx;
+}
+
+.card-live {
+  border-color: #ff1744 !important;
+}
