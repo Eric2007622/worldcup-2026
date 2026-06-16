@@ -224,22 +224,36 @@ function pickAvatar(el, av) {
   selectedAvatar = av;
 }
 
-async function doLogin() {
+function doLogin() {
   var nick = document.getElementById('nicknameInput').value.trim();
+  var wxid = document.getElementById('wechatInputLogin').value.trim();
   if (!nick) { alert('请输入昵称'); return; }
-  try {
-    var res = await fetch(API + '/api/user/login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nickname: nick, avatar: selectedAvatar })
+  if (!wxid) { alert('请输入微信号'); return; }
+  closeLogin();
+  var urlParams = new URLSearchParams(window.location.search);
+  var inviteCode = urlParams.get('invite') || '';
+
+  fetch(API + '/api/user/invite-login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nickname:nick, avatar:selectedAvatar, inviteCode:inviteCode, wechatId:wxid})
+  }).then(function(r) {
+    return r.json().then(function(data) {
+      if (!r.ok) throw new Error(data.error || '注册失败');
+      return data;
     });
-    var data = await res.json();
-    if (data.user) {
-      saveUser(data.user);
-      closeLogin();
-      loadBets();
+  }).then(function(d) {
+    if (d.user) {
+      saveUser(d.user);
+      updateUserUI();
+      if (d.login) showToast('👋', '欢迎回来！', d.user.nickname);
+      else if (d.inviter) showToast('🎉', '注册成功！', '通过 ' + d.inviter + ' 邀请，+200金币');
+      else showToast('🎉', '注册成功！', '欢迎 ' + d.user.nickname);
     }
-  } catch(e) { alert('登录失败，请重试'); }
+  }).catch(function(e) {
+    showToast('❌', '登录失败', e.message || '请重试');
+    setTimeout(showLogin, 1500);
+  });
 }
 
 // ===== 下注 =====
