@@ -299,6 +299,10 @@ app.post('/api/user/invite-login', (req, res) => {
     return res.json({ user, login: true })
   }
 
+  // 检查昵称是否已被使用
+  const nameExists = Object.values(db.users).find(u => u.nickname === nickname && u.wechatId !== wechatId)
+  if (nameExists) return res.status(400).json({ error: '昵称已被占用，请换一个' })
+
   // 查找邀请人
   let inviter = null
   if (inviteCode) {
