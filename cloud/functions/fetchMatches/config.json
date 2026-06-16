@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "openapi": []
+  },
+  "triggers": [
+    {
+      "name": "定时刷新",
+      "type": "timer",
+      "config": "0 */5 * * * * *"
+    }
+  ]
+}
