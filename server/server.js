@@ -148,7 +148,7 @@ app.get('/api/user/:uid', async (req, res) => {
 })
 
 app.get('/api/user/search/:kw', async (req, res) => {
-  const kw = '%' + req.params.keyword + '%'
+  const kw = '%' + req.params.kw + '%'
   if (pool) {
     const rows = await query('SELECT * FROM users WHERE wechat_id ILIKE $1 OR nickname ILIKE $1 LIMIT 10', [kw])
     return res.json({ results: rows.map(u => ({ uid: u.uid, nickname: u.nickname, avatar: u.avatar, wechatId: u.wechat_id || '', coins: u.coins })) })
@@ -285,7 +285,7 @@ app.post('/api/user/:uid/add-friend', async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
   if (pool) {
     const allUsers = await query('SELECT * FROM users ORDER BY coins DESC LIMIT 50')
-    const byCoins = allUsers.map((u, i) => ({ rank: i+1, nickname: u.nickname, avatar: u.avatar, coins: u.coins, totalBets: u.total_bets, wins: u.wins, losses: u.losses, winRate: u.total_bets>0?Math.round(u.wins/u.total_bets*100):0, profit: u.profit, wechatId: u.wechat_id||'' }))
+    const byCoins = allUsers.map((u, i) => ({ rank: i+1, uid: u.uid, nickname: u.nickname, avatar: u.avatar, coins: u.coins, totalBets: u.total_bets, wins: u.wins, losses: u.losses, winRate: u.total_bets>0?Math.round(u.wins/u.total_bets*100):0, profit: u.profit, wechatId: u.wechat_id||'' }))
     const byWinRate = allUsers.filter(u => u.total_bets >= 3).sort((a,b) => (b.wins/b.total_bets)-(a.wins/a.total_bets)).slice(0,20).map((u,i) => ({ rank:i+1, nickname:u.nickname, avatar:u.avatar, winRate:Math.round(u.wins/u.total_bets*100), wins:u.wins, totalBets:u.total_bets, coins:u.coins }))
     const byProfit = allUsers.filter(u => u.total_bets>0).sort((a,b) => b.profit-a.profit).slice(0,20).map((u,i) => ({ rank:i+1, nickname:u.nickname, avatar:u.avatar, profit:u.profit, coins:u.coins, totalBets:u.total_bets }))
     return res.json({ byCoins, byWinRate, byProfit })
