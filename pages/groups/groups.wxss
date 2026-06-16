@@ -1,0 +1,78 @@
+/* pages/groups/groups.wxss */
+.group-scroll {
+  white-space: nowrap;
+  padding: 10rpx 0 20rpx;
+}
+.group-chip {
+  display: inline-block;
+  padding: 12rpx 28rpx;
+  margin-right: 12rpx;
+  background: #141929;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  color: #5a6580;
+  border: 2rpx solid #1e2640;
+}
+.group-chip.active {
+  background: #1a2a4a;
+  color: #ffd700;
+  border-color: #ffd700;
+}
+
+.standing-header {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  font-size: 22rpx;
+  color: #5a6580;
+  font-weight: 600;
+  border-bottom: 2rpx solid #1e2640;
+}
+
+.standing-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  border-bottom: 1rpx solid #1a2040;
+}
+.standing-row:last-child {
+  border-bottom: none;
+}
+
+.col-rank {
+  width: 40rpx;
+  text-align: center;
+}
+.col-team {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.col-stat {
+  width: 60rpx;
+  text-align: center;
+  font-size: 24rpx;
+}
+.col-pts {
+  width: 60rpx;
+  text-align: center;
+  font-weight: 700;
+  color: #4a9eff;
+}
+
+.team-flag-small {
+  font-size: 32rpx;
+}
+.team-name-small {
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.group-note {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #5a6580;
+  text-align: center;
+}
