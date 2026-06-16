@@ -1,0 +1,290 @@
+/* app.wxss - 全局样式 */
+page {
+  background: #0a0e1a;
+  color: #e0e0e0;
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.container {
+  padding: 24rpx 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 通用卡片 */
+.card {
+  background: #141929;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid #1e2640;
+}
+
+.card-gold {
+  background: linear-gradient(135deg, #2a1f00 0%, #1a1500 100%);
+  border: 2rpx solid #ffd700;
+}
+
+/* 区域标题 */
+.section-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  margin: 40rpx 0 20rpx;
+  padding-left: 20rpx;
+  border-left: 8rpx solid #ffd700;
+}
+
+/* 比赛行 */
+.match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.team.away {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.team-flag {
+  font-size: 48rpx;
+}
+
+.team-name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.score {
+  font-size: 52rpx;
+  font-weight: 800;
+  min-width: 140rpx;
+  text-align: center;
+  color: #fff;
+}
+
+.score-predicted {
+  color: #ffd700;
+  font-size: 44rpx;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 12rpx;
+  margin-left: 12rpx;
+}
+
+.tag-live {
+  background: #ff1744;
+  color: #fff;
+  animation: pulse 1.5s infinite;
+}
+
+.tag-finished {
+  background: #1a2240;
+  color: #5a6580;
+}
+
+.tag-predict {
+  background: #1a2a4a;
+  color: #4a9eff;
+}
+
+.tag-upset {
+  background: #3a1a2a;
+  color: #ff6b6b;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 比赛信息 */
+.match-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #5a6580;
+}
+
+/* 预测原因 */
+.prediction-reason {
+  font-size: 26rpx;
+  color: #8892b0;
+  margin-top: 16rpx;
+  line-height: 1.6;
+}
+
+/* 置信度 */
+.confidence {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 12rpx;
+}
+
+.conf-high {
+  background: #1b3a2a;
+  color: #4caf50;
+}
+
+.conf-med {
+  background: #3a3520;
+  color: #ffc107;
+}
+
+.conf-low {
+  background: #3a2a1a;
+  color: #ff9800;
+}
+
+/* 积分榜 */
+.group-card {
+  background: #141929;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid #1e2640;
+}
+
+.group-title {
+  font-size: 30rpx;
+  color: #ffd700;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.standing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 0;
+  font-size: 26rpx;
+  border-bottom: 1rpx solid #1a2040;
+}
+
+.standing-row:last-child {
+  border-bottom: none;
+}
+
+.pts {
+  font-weight: 700;
+  color: #4a9eff;
+  min-width: 60rpx;
+  text-align: center;
+}
+
+.status-qualified {
+  color: #4caf50;
+  font-size: 22rpx;
+}
+
+.status-danger {
+  color: #f44336;
+  font-size: 22rpx;
+}
+
+.status-pending {
+  color: #5a6580;
+  font-size: 22rpx;
+}
+
+/* 冠军预测 */
+.champion-box {
+  text-align: center;
+  padding: 40rpx;
+}
+
+.champion-flag {
+  font-size: 96rpx;
+  display: block;
+  margin: 16rpx 0;
+}
+
+.champion-name {
+  font-size: 60rpx;
+  font-weight: 800;
+  color: #fff;
+}
+
+.champion-sub {
+  color: #8892b0;
+  font-size: 26rpx;
+  margin-top: 16rpx;
+  line-height: 1.8;
+}
+
+/* 日期分隔 */
+.date-header {
+  font-size: 26rpx;
+  color: #4a9eff;
+  padding: 20rpx 0 10rpx;
+  font-weight: 600;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 80rpx 40rpx;
+  color: #5a6580;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background: #141929;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  margin-bottom: 24rpx;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  border-radius: 12rpx;
+  color: #5a6580;
+}
+
+.tab-item.active {
+  background: #1a2a4a;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+/* 加载 */
+.loading {
+  text-align: center;
+  padding: 60rpx;
+  color: #5a6580;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #1e2640;
+  border-top: 4rpx solid #ffd700;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
