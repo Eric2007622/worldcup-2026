@@ -514,6 +514,56 @@ function useInviteCode() {
   }).catch(function(){ showToast('❌', '领取失败', '网络错误'); });
 }
 
+function searchFriend() {
+  var kw = document.getElementById('searchWechat').value.trim();
+  if (!kw) { showToast('', '请输入微信号或昵称', ''); return; }
+  fetch(API + '/api/user/search/' + encodeURIComponent(kw))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var el = document.getElementById('searchResult');
+      if (!data.results || !data.results.length) {
+        el.innerHTML = '<div style="font-size:12px;color:#5a6580;padding:6px">未找到用户</div>';
+        return;
+      }
+      var h = '';
+      data.results.forEach(function(u) {
+        var isMe = currentUser && u.uid === currentUser.uid;
+        var isFriend = currentUser && currentUser.friends && currentUser.friends.includes(u.uid);
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px solid #1a2040">';
+        h += '<div><span style="font-size:14px">' + u.avatar + '</span> <span style="font-size:12px">' + u.nickname + '</span>';
+        if (u.wechatId) h += ' <span style="font-size:10px;color:#4a9eff">wx:' + u.wechatId + '</span>';
+        h += '</div>';
+        if (isMe) h += '<span style="font-size:10px;color:#5a6580">自己</span>';
+        else if (isFriend) h += '<span style="font-size:10px;color:#4caf50">已好友</span>';
+        else h += '<button onclick="addFriend(\'' + u.uid + '\')" style="padding:3px 8px;background:#4a9eff;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer">加好友</button>';
+        h += '</div>';
+      });
+      el.innerHTML = h;
+    })
+    .catch(function() {
+      document.getElementById('searchResult').innerHTML = '<div style="font-size:12px;color:#f44336;padding:6px">搜索失败</div>';
+    });
+}
+
+function addFriend(targetUid) {
+  if (!currentUser) { showToast('', '请先登录', ''); return; }
+  if (!targetUid) { showToast('', '无法添加', ''); return; }
+  fetch(API + '/api/user/' + currentUser.uid + '/add-friend', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ targetUid: targetUid })
+  }).then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { showToast('', '添加失败', d.error); return; }
+      showToast('🎉', '好友添加成功！', d.friend.avatar + ' ' + d.friend.nickname + ' 已成为你的好友');
+      if (!currentUser.friends) currentUser.friends = [];
+      currentUser.friends.push(targetUid);
+      setTimeout(loadFriendsData, 500);
+    })
+    .catch(function() { showToast('', '添加失败', '网络错误'); });
+}
+
+
 function loadGlobalRank() {
   fetch(API + '/api/leaderboard').then(function(r){return r.json()}).then(function(data) {
     var el = document.getElementById('globalRank');
