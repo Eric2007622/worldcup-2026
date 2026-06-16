@@ -26,7 +26,7 @@ async function initDB() {
     uid TEXT PRIMARY KEY, nickname TEXT UNIQUE, avatar TEXT DEFAULT '😎',
     coins INTEGER DEFAULT 1000, total_bets INTEGER DEFAULT 0, wins INTEGER DEFAULT 0,
     losses INTEGER DEFAULT 0, profit INTEGER DEFAULT 0, invite_code TEXT,
-    wechat_id TEXT UNIQUE, invited_by TEXT, invite_reward INTEGER DEFAULT 0,
+    wechat_id TEXT UNIQUE, invited_by TEXT, invite_reward INTEGER DEFAULT 0, last_daily DATE,
     created_at TIMESTAMP DEFAULT NOW()
   )`)
   
@@ -332,6 +332,34 @@ app.post('/api/user/login-by-wechat', async (req, res) => {
   const user = Object.values(memDB.users).find(u => u.wechat_id === wechatId)
   if (!user) return res.status(404).json({ error: '该微信号未注册' })
   res.json({ user })
+})
+
+
+// 每日签到领取500金币
+app.post('/api/user/:uid/daily', async (req, res) => {
+  if (!pool) return res.status(400).json({ error: '服务暂不可用' })
+  const users = await query('SELECT * FROM users WHERE uid=$1', [req.params.uid])
+  if (!users.length) return res.status(404).json({ error: '用户不存在' })
+  const user = users[0]
+
+  const today = new Date().toISOString().split('T')[0]
+  if (user.last_daily && user.last_daily.toISOString().split('T')[0] === today) {
+    return res.status(400).json({ error: '今日已领取,明天再来' })
+  }
+
+  await run('UPDATE users SET coins = coins + 500, last_daily = $1 WHERE uid = $2', [today, req.params.uid])
+  const updated = (await query('SELECT * FROM users WHERE uid=$1', [req.params.uid]))[0]
+  res.json({ user: dbUser(updated), bonus: 500 })
+})
+
+// 检查今日是否已领取
+app.get('/api/user/:uid/daily-status', async (req, res) => {
+  if (!pool) return res.json({ claimed: false })
+  const users = await query('SELECT last_daily FROM users WHERE uid=$1', [req.params.uid])
+  if (!users.length) return res.json({ claimed: false })
+  const today = new Date().toISOString().split('T')[0]
+  const claimed = users[0].last_daily && users[0].last_daily.toISOString().split('T')[0] === today
+  res.json({ claimed })
 })
 
 app.get('/api/health', async (req, res) => {
