@@ -109,7 +109,7 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
   <h1>2026世界杯 AI预测中心</h1>
   <div class="top-bar">
     <div class="user-box" id="userBox" onclick="showProfile()"><span class="avatar" id="userAvatar">👤</span><span id="userName">点击登录</span></div>
-    <div class="coin-box">🪙 <span id="coinDisplay">-</span></div>
+    <div class="coin-box" onclick="claimDaily()" id="coinBox" style="cursor:pointer">🪙 <span id="coinDisplay">-</span> <span id="dailyBtn" style="display:none;margin-left:4px;background:#ff6b35;padding:1px 6px;border-radius:8px;font-size:10px">签到+500</span></div>
     <div class="update-time" id="updateTime">-</div>
   </div>
 </div>
@@ -204,6 +204,7 @@ function updateUserUI() {
     document.getElementById('userAvatar').textContent = currentUser.avatar || '😎';
     document.getElementById('userName').textContent = currentUser.nickname + (currentUser.wechatId ? ' 📱' : '');
     document.getElementById('coinDisplay').textContent = currentUser.coins;
+    checkDaily();
   }
 }
 
@@ -291,7 +292,40 @@ async function confirmBet(matchId) {
 }
 
 var myBets = [];
-async function loadBets() {
+async // 每日签到
+function checkDaily() {
+  if (!currentUser) return;
+  fetch(API + '/api/user/' + currentUser.uid + '/daily-status')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var btn = document.getElementById('dailyBtn');
+      if (btn) btn.style.display = d.claimed ? 'none' : 'inline';
+    }).catch(function(){});
+}
+
+function claimDaily() {
+  if (!currentUser) { showLogin(); return; }
+  var btn = document.getElementById('dailyBtn');
+  if (!btn || btn.style.display === 'none') {
+    showToast('', '今日已领取', '明天再来');
+    return;
+  }
+  fetch(API + '/api/user/' + currentUser.uid + '/daily', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'}
+  }).then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { showToast('', '领取失败', d.error); return; }
+      currentUser.coins = d.user.coins;
+      saveUser(currentUser);
+      updateUserUI();
+      btn.style.display = 'none';
+      showToast('🎉', '签到成功!', '+500 金币');
+    })
+    .catch(function() { showToast('', '领取失败', '网络错误'); });
+}
+
+function loadBets() {
   if (!currentUser) return;
   try {
     var res = await fetch(API + '/api/bets/' + currentUser.uid);
