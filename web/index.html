@@ -548,15 +548,33 @@ function showGroup(el,k){document.querySelectorAll('.gtab').forEach(function(t){
 
 // ===== 启动 =====
 currentUser = getUser();
-// 检测URL邀请码
 var urlParams = new URLSearchParams(window.location.search);
 var inviteFromUrl = urlParams.get('invite');
-if (inviteFromUrl && !currentUser) {
-  // 有邀请码但未登录，显示登录弹窗
-  showLogin();
-} else if (currentUser) {
-  updateUserUI();
-  loadBets();
+
+if (currentUser) {
+  // 验证账号是否还存在
+  fetch(API + '/api/user/' + currentUser.uid)
+    .then(function(r) {
+      if (r.ok) return r.json();
+      throw new Error('not found');
+    })
+    .then(function(d) {
+      if (d.user) {
+        currentUser = d.user;
+        saveUser(currentUser);
+        updateUserUI();
+        loadBets();
+      } else {
+        throw new Error('not found');
+      }
+    })
+    .catch(function() {
+      // 账号不存在，清除本地数据，重新登录
+      localStorage.removeItem('wc_user');
+      currentUser = null;
+      updateUserUI();
+      showLogin();
+    });
 } else {
   showLogin();
 }
