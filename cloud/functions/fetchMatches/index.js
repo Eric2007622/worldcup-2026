@@ -11,6 +11,8 @@ const db = cloud.database()
 
 const API_URL = 'https://api.openligadb.de/getmatchdata/wm2026'
 
+// NOTE: 翻译表与 shared/i18n.js 保持同步
+// 云函数独立部署，无法直接引用共享模块
 const TEAM_CN = {
   'Mexiko': '墨西哥', 'Südafrika': '南非', 'Südkorea': '韩国', 'Tschechien': '捷克',
   'Kanada': '加拿大', 'Bosnien-Herzegowina': '波黑', 'Katar': '卡塔尔', 'Schweiz': '瑞士',

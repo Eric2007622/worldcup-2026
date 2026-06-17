@@ -142,7 +142,11 @@ td.tc{text-align:left}.pts{font-weight:700;color:#4a9eff}
     </div>
     <div style="text-align:left;margin-bottom:12px">
       <div style="font-size:12px;color:#5a6580;margin-bottom:4px">微信号</div>
-      <div id="wechatBindArea"></div>
+      <div id="wechatStatus" style="font-size:12px;color:#5a6580;margin-bottom:6px">未绑定</div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="wechatInput" placeholder="输入微信号" style="flex:1;padding:8px;background:#0d1225;border:1px solid #2a3560;color:#ffd700;border-radius:8px;font-size:13px;text-align:center">
+        <button onclick="saveWechat()" style="padding:8px 14px;background:#4a9eff;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer">绑定</button>
+      </div>
     </div>
     <button onclick="closeProfile()" style="padding:10px;background:#1e2640;color:#8892b0;border:none;border-radius:8px;cursor:pointer;font-size:13px;width:100%">关闭</button>
   </div>
@@ -196,6 +200,12 @@ var selectedBet = {}, betAmounts = {};
 var selectedAvatar = '😎';
 var lbTab = 'coins';
 
+// ===== XSS 防御 =====
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ===== 用户系统 =====
 function getUser() { try { return JSON.parse(localStorage.getItem('wc_user')); } catch(e) { return null; } }
 function saveUser(u) { localStorage.setItem('wc_user', JSON.stringify(u)); currentUser = u; updateUserUI(); }
@@ -242,6 +252,43 @@ function pickAvatar(el, av) {
   selectedAvatar = av;
 }
 
+function switchAuthTab(tab) {
+  document.getElementById('tabReg').style.color = tab === 'register' ? '#ffd700' : '#5a6580';
+  document.getElementById('tabReg').style.background = tab === 'register' ? '#1a2240' : 'transparent';
+  document.getElementById('tabLogin').style.color = tab === 'login' ? '#ffd700' : '#5a6580';
+  document.getElementById('tabLogin').style.background = tab === 'login' ? '#1a2240' : 'transparent';
+  document.getElementById('regPanel').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('loginPanel').style.display = tab === 'login' ? 'block' : 'none';
+}
+
+function doRegister() {
+  var nickname = document.getElementById('regNickname').value.trim();
+  var wechatId = document.getElementById('regWechat').value.trim();
+  var inviteCode = document.getElementById('regInvite').value.trim();
+  if (!nickname) { showToast('', '请输入昵称', ''); return; }
+  if (!wechatId) { showToast('', '请输入微信号', ''); return; }
+  closeLogin();
+  fetch(API + '/api/user/invite-login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ nickname: nickname, avatar: selectedAvatar, inviteCode: inviteCode, wechatId: wechatId })
+  }).then(function(r) {
+    return r.json().then(function(data) {
+      if (!r.ok) throw new Error(data.error || '注册失败');
+      return data;
+    });
+  }).then(function(d) {
+    if (d.user) {
+      saveUser(d.user);
+      updateUserUI();
+      var msg = d.inviter ? '通过 ' + d.inviter + ' 的邀请注册成功!' : '注册成功!';
+      showToast('🎉', msg, '获得 ' + (d.user.coins) + ' 金币');
+    }
+  }).catch(function(e) {
+    showError('❌', '注册失败', e.message || '请重试');
+  });
+}
+
 function doLogin() {
   var wxid = document.getElementById('loginWechat').value.trim();
   if (!wxid) { showToast('', '请输入微信号', ''); return; }
@@ -265,6 +312,14 @@ function doLogin() {
   }).catch(function(e) {
     showError('❌', '登录失败', e.message || '请重试');
   });
+}
+
+function doGuestLogin() {
+  closeLogin();
+  var guest = { uid: 'guest_' + Date.now(), nickname: '游客', avatar: '👤', coins: 0, totalBets: 0, wins: 0, losses: 0, profit: 0, inviteCode: '', wechatId: '' };
+  saveUser(guest);
+  updateUserUI();
+  showToast('👤', '游客模式', '注册后可竞猜赢金币');
 }
 
 // ===== 下注 =====
@@ -292,7 +347,7 @@ async function confirmBet(matchId) {
 }
 
 var myBets = [];
-async // 每日签到
+// 每日签到
 function checkDaily() {
   if (!currentUser) return;
   fetch(API + '/api/user/' + currentUser.uid + '/daily-status')
@@ -332,7 +387,7 @@ async function loadBets() {
     var data = await res.json();
     myBets = data.bets || [];
     // 结算
-    await fetch(API + '/api/settle', { method: 'POST' });
+    await fetch(API + '/api/settle', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ uid: currentUser.uid }) });
     // 刷新用户
     var ures = await fetch(API + '/api/user/' + currentUser.uid);
     var udata = await ures.json();
@@ -367,13 +422,21 @@ function loadData() {
 }
 
 // ===== 球队数据 =====
-var R={'阿根廷':94,'法国':93,'英格兰':91,'巴西':90,'德国':89,'西班牙':89,'荷兰':87,'葡萄牙':87,'比利时':85,'克罗地亚':84,'哥伦比亚':83,'乌拉圭':82,'日本':80,'美国':79,'墨西哥':78,'韩国':77,'澳大利亚':76,'瑞士':76,'塞内加尔':75,'摩洛哥':75,'挪威':74,'瑞典':74,'埃及':73,'科特迪瓦':73,'厄瓜多尔':72,'土耳其':72,'巴拉圭':71,'苏格兰':70,'卡塔尔':69,'加拿大':68,'伊朗':67,'沙特阿拉伯':66,'突尼斯':65,'捷克':65,'波黑':64,'奥地利':64,'加纳':63,'新西兰':62,'巴拿马':61,'海地':58,'阿尔及利亚':62,'约旦':59,'伊拉克':58,'南非':57,'佛得角':55,'库拉索':50,'乌兹别克斯坦':56};
-var HB={'美国':8,'墨西哥':8,'加拿大':6};
-var SP={'法国vs塞内加尔':{h:2,a:0,c:85,r:'法国阵容豪华,姆巴佩领衔'},'伊拉克vs挪威':{h:1,a:2,c:65,r:'哈兰德坐镇挪威锋线'},'奥地利vs约旦':{h:2,a:1,c:70,r:'欧洲劲旅经验取胜'},'阿根廷vs阿尔及利亚':{h:3,a:0,c:90,r:'卫冕冠军首战,梅西最后一舞'},'英格兰vs克罗地亚':{h:2,a:1,c:65,r:'英格兰青春风暴对决克罗地亚'},'德国vs科特迪瓦':{h:3,a:1,c:75,r:'德国首轮7-1后士气高涨'},'美国vs澳大利亚':{h:2,a:1,c:70,r:'东道主状态火热'},'西班牙vs沙特阿拉伯':{h:2,a:0,c:75,r:'西班牙必全力争胜'},'比利时vs伊朗':{h:2,a:0,c:70,r:'比利时必须拿下'}};
-function predict(h,a){var hr=(R[h]||60)+(HB[h]||0),ar=R[a]||60,diff=hr-ar,k=h+'vs'+a;if(SP[k]){var s=SP[k];return{hg:s.h,ag:s.a,conf:s.c,reason:s.r,res:s.h>s.a?'home':s.h<s.a?'away':'draw'}}if(diff>=25)return{hg:3,ag:0,conf:90,reason:h+'实力碾压',res:'home'};if(diff>=15)return{hg:2,ag:0,conf:80,reason:h+'占据优势',res:'home'};if(diff>=8)return{hg:2,ag:1,conf:70,reason:h+'小胜',res:'home'};if(diff>=3)return{hg:1,ag:0,conf:60,reason:h+'微弱优势',res:'home'};if(diff>=-3)return{hg:1,ag:1,conf:55,reason:'平局可能性大',res:'draw'};if(diff>=-8)return{hg:0,ag:1,conf:60,reason:a+'客场小胜',res:'away'};if(diff>=-15)return{hg:1,ag:2,conf:70,reason:a+'实力占优',res:'away'};return{hg:0,ag:3,conf:85,reason:a+'碾压',res:'away'}}
-function isUpset(m){if(m.status!=='finished')return false;var hr=R[m.home]||60,ar=R[m.away]||60;if(hr-ar>=15&&m.homeScore<=m.awayScore)return true;if(ar-hr>=15&&m.awayScore<=m.homeScore)return true;if(m.home==='西班牙'&&m.away==='佛得角'&&m.homeScore===m.awayScore)return true;if(m.home==='巴西'&&m.away==='摩洛哥'&&m.homeScore===m.awayScore)return true;return false}
+// ===== Poisson 回归预测引擎 =====
+var ELO={'阿根廷':1850,'法国':1830,'英格兰':1800,'巴西':1790,'德国':1780,'西班牙':1780,'荷兰':1750,'葡萄牙':1750,'比利时':1720,'克罗地亚':1710,'哥伦比亚':1700,'乌拉圭':1690,'日本':1660,'美国':1650,'墨西哥':1640,'韩国':1630,'澳大利亚':1620,'瑞士':1620,'塞内加尔':1610,'摩洛哥':1610,'挪威':1600,'瑞典':1600,'埃及':1590,'科特迪瓦':1590,'厄瓜多尔':1580,'土耳其':1580,'巴拉圭':1570,'苏格兰':1560,'卡塔尔':1550,'加拿大':1540,'伊朗':1530,'沙特阿拉伯':1520,'突尼斯':1510,'捷克':1510,'波黑':1500,'奥地利':1500,'加纳':1490,'新西兰':1480,'巴拿马':1470,'海地':1440,'阿尔及利亚':1480,'约旦':1450,'伊拉克':1440,'南非':1430,'佛得角':1410,'库拉索':1380,'乌兹别克斯坦':1420,'刚果(金)':1460};
+var HOME_BONUS={'美国':100,'墨西哥':100,'加拿大':80};
+var GLOBAL_AVG=2.6;
+function _fact(n){if(n<=1)return 1;var r=1;for(var i=2;i<=n;i++)r*=i;return r}
+function _poisson(k,l){return Math.exp(-l)*Math.pow(l,k)/_fact(k)}
+function _eloStr(elo){return Math.exp((elo-1500)/1000)}
+function _xg(home,away){var he=(ELO[home]||1400)+(HOME_BONUS[home]||0),ae=ELO[away]||1400,hs=_eloStr(he),as=_eloStr(ae),avg=(hs+as)/2,ha=hs/avg,aa=as/avg;return{h:Math.max(0.4,Math.min(3.5,GLOBAL_AVG*0.55*ha/(1/aa))),a:Math.max(0.3,Math.min(3.0,GLOBAL_AVG*0.45*aa/(1/hs)))}}
+function _probs(xh,xa){var hw=0,dr=0,aw=0;for(var h=0;h<=6;h++)for(var a=0;a<=6;a++){var p=_poisson(h,xh)*_poisson(a,xa);if(h>a)hw+=p;else if(h===a)dr+=p;else aw+=p}return{hw:hw,dr:dr,aw:aw}}
+function _score(xh,xa){var bh=0,ba=0,bp=0;for(var h=0;h<=6;h++)for(var a=0;a<=6;a++){var p=_poisson(h,xh)*_poisson(a,xa);if(p>bp){bp=p;bh=h;ba=a}}return{h:bh,a:ba}}
+function _conf(p){var arr=[p.hw,p.dr,p.aw].sort(function(a,b){return b-a});var margin=arr[0]-arr[1];return Math.max(30,Math.min(95,Math.round(30+margin*130)))}
+function predict(home,away){var x=_xg(home,away),p=_probs(x.h,x.a),s=_score(x.h,x.a),c=_conf(p),res=p.hw>p.aw?'home':p.aw>p.hw?'away':'draw';var diff=p.hw-p.aw,reason;if(diff>0.4)reason=home+'实力占优，预计进球期望 '+x.h.toFixed(1)+'-'+x.a.toFixed(1)+'，大概率取胜';else if(diff>0.15)reason=home+'小幅领先，但'+away+'有反击能力';else if(diff>-0.15)reason='两队实力接近，'+(x.h+x.a>2.8?'进球数可能较多':'可能低比分');else if(diff>-0.4)reason=away+'客场作战仍有优势';else reason=away+'实力明显强于'+home;return{hg:s.h,ag:s.a,conf:c,reason:reason,res:res,xg:{home:x.h,away:x.a},probs:{hw:(p.hw*100).toFixed(1),dr:(p.dr*100).toFixed(1),aw:(p.aw*100).toFixed(1)}}}
+function isUpset(m){if(m.status!=='finished')return false;var x=_xg(m.home,m.away),p=_probs(x.h,x.a);if(p.hw>0.65&&m.homeScore<=m.awayScore)return true;if(p.aw>0.65&&m.awayScore<=m.homeScore)return true;if(m.home==='西班牙'&&m.away==='佛得角'&&m.homeScore===m.awayScore)return true;if(m.home==='巴西'&&m.away==='摩洛哥'&&m.homeScore===m.awayScore)return true;return false}
 function getToday(){var n=new Date();return new Date(n.getTime()+8*3600000).toISOString().split('T')[0]}
-function calcOdds(ch,p){var base;if(p.res==='home')base={home:1.5,draw:3.5,away:6.0};else if(p.res==='away')base={home:6.0,draw:3.5,away:1.5};else base={home:2.8,draw:2.5,away:2.8};var f=p.conf/100;if(ch===p.res)return Math.max(1.1,base[ch]*(1.5-f));return base[ch]*(0.8+f*0.3)}
+function calcOdds(ch,p){var pr=p.probs||p;var raw={home:1/pr.hw,draw:1/pr.dr,away:1/pr.aw};var adj={home:raw.home*0.92,draw:raw.draw*0.92,away:raw.away*0.92};return Math.max(1.05,parseFloat((adj[ch]||2.0).toFixed(2)))}
 
 // ===== 导航 =====
 function pageNav(p){currentPage=p;document.querySelectorAll('.nav-item').forEach(function(n,i){n.classList.toggle('active',['main','mybets','friends','leaderboard','history'][i]===p)});if(p==='main')document.getElementById('mainTabs').classList.remove('hidden');else document.getElementById('mainTabs').classList.add('hidden');render()}
@@ -415,6 +478,8 @@ function rBetUI(m){
   var bet=myBets.find(function(b){return b.matchId===m.id&&b.status==='pending'});
   if(bet){var ct=bet.choice==='home'?bet.home:bet.choice==='away'?bet.away:'平局';return'<div class="my-bet"><span>已竞猜: <span class="my-bet-choice">'+ct+'</span> <span class="bet-tag bet-tag-pending">待结算</span></span><span>'+bet.amount+'金币 赔率'+bet.odds+'</span></div>'}
   if(m.status==='finished'){var won=myBets.find(function(b){return b.matchId===m.id&&b.status==='won'});var lost=myBets.find(function(b){return b.matchId===m.id&&b.status==='lost'});if(won)return'<div class="my-bet"><span>竞猜: <span class="my-bet-choice">'+(won.choice==='home'?won.home:won.choice==='away'?won.away:'平局')+'</span></span><span class="bet-tag bet-tag-won">赢得 '+won.potential+'金币</span></div>';if(lost)return'<div class="my-bet"><span>竞猜: <span class="my-bet-choice">'+(lost.choice==='home'?lost.home:lost.choice==='away'?lost.away:'平局')+'</span></span><span class="bet-tag bet-tag-lost">损失 '+lost.amount+'金币</span></div>';return''}
+  // 检查比赛是否已到开赛时间
+  var matchDT=new Date(m.date+'T'+m.time+':00+08:00');if(matchDT<=new Date())return'<div class="my-bet" style="color:#5a6580;text-align:center">比赛已开始，竞猜已关闭</div>'
   var p=predict(m.home,m.away),sel=selectedBet[m.id];
   var oh=calcOdds('home',p).toFixed(1),od=calcOdds('draw',p).toFixed(1),oa=calcOdds('away',p).toFixed(1);
   var h='<div class="bet-area"><div class="bet-buttons">';
@@ -433,7 +498,7 @@ function rMyBets(){
   var pending=myBets.filter(function(b){return b.status==='pending'});
   if(!pending.length)return'<div class="empty">暂无进行中的竞猜<br><br>去"即将开赛"页面下注吧</div>';
   var h='<div class="section">进行中的竞猜</div>';
-  pending.forEach(function(b){var ct=b.choice==='home'?b.home:b.choice==='away'?b.away:'平局';h+='<div class="card"><div class="match"><div class="team"><span class="flag">'+b.homeFlag+'</span><span class="tname">'+b.home+'</span></div><div style="font-size:14px;color:#5a6580">VS</div><div class="team away"><span class="flag">'+b.awayFlag+'</span><span class="tname">'+b.away+'</span></div></div><div class="my-bet"><span>竞猜: <span class="my-bet-choice">'+ct+'</span></span><span>'+b.amount+'金币 赔率'+b.odds+' 可赢'+b.potential+'</span></div></div>'});
+  pending.forEach(function(b){var ct=b.choice==='home'?esc(b.home):b.choice==='away'?esc(b.away):'平局';h+='<div class="card"><div class="match"><div class="team"><span class="flag">'+esc(b.homeFlag)+'</span><span class="tname">'+esc(b.home)+'</span></div><div style="font-size:14px;color:#5a6580">VS</div><div class="team away"><span class="flag">'+esc(b.awayFlag)+'</span><span class="tname">'+esc(b.away)+'</span></div></div><div class="my-bet"><span>竞猜: <span class="my-bet-choice">'+ct+'</span></span><span>'+b.amount+'金币 赔率'+b.odds+' 可赢'+b.potential+'</span></div></div>'});
   return h;
 }
 
@@ -456,21 +521,20 @@ async function loadLB() {
     list = lbData.byCoins || [];
     list.forEach(function(u,i) {
       var rc = i<3?'lb-rank top'+(i+1):'lb-rank';
-      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+u.avatar+'</div><div class="lb-name">'+u.nickname+'</div><div class="lb-value coins">🪙'+u.coins+'</div></div>';
+      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+esc(u.avatar)+'</div><div class="lb-name">'+esc(u.nickname)+'</div><div class="lb-value coins">🪙'+u.coins+'</div></div>';
     });
   } else if (lbTab === 'winrate') {
     list = lbData.byWinRate || [];
     list.forEach(function(u,i) {
       var rc = i<3?'lb-rank top'+(i+1):'lb-rank';
-      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+u.avatar+'</div><div class="lb-name">'+u.nickname+' <span style="font-size:10px;color:#5a6580">'+u.wins+'/'+u.totalBets+'场</span></div><div class="lb-value wr">'+u.winRate+'%</div></div>';
+      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+esc(u.avatar)+'</div><div class="lb-name">'+esc(u.nickname)+' <span style="font-size:10px;color:#5a6580">'+u.wins+'/'+u.totalBets+'场</span></div><div class="lb-value wr">'+u.winRate+'%</div></div>';
     });
   } else {
     list = lbData.byProfit || [];
     list.forEach(function(u,i) {
       var rc = i<3?'lb-rank top'+(i+1):'lb-rank';
       var cls = u.profit>=0?'profit-pos':'profit-neg';
-      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+u.avatar+'</div><div class="lb-name">'+u.nickname+'</div><div class="lb-value '+cls+'">'+(u.profit>=0?'+':'')+u.profit+'</div></div>';
-    });
+      h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+esc(u.avatar)+'</div><div class="lb-name">'+esc(u.nickname)+'</div><div class="lb-value '+cls+'">'+(u.profit>=0?'+':'')+u.profit+'</div></div>';
   }
   if (!list.length) h = '<div class="empty">暂无数据,快来成为第一名!</div>';
   var el = document.getElementById('lbContent');
@@ -573,12 +637,12 @@ function searchFriend() {
         var isMe = currentUser && u.uid === currentUser.uid;
         var isFriend = currentUser && currentUser.friends && currentUser.friends.includes(u.uid);
         h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px solid #1a2040">';
-        h += '<div><span style="font-size:14px">' + u.avatar + '</span> <span style="font-size:12px">' + u.nickname + '</span>';
-        if (u.wechatId) h += ' <span style="font-size:10px;color:#4a9eff">wx:' + u.wechatId + '</span>';
+        h += '<div><span style="font-size:14px">' + esc(u.avatar) + '</span> <span style="font-size:12px">' + esc(u.nickname) + '</span>';
+        if (u.wechatId) h += ' <span style="font-size:10px;color:#4a9eff">wx:' + esc(u.wechatId) + '</span>';
         h += '</div>';
         if (isMe) h += '<span style="font-size:10px;color:#5a6580">自己</span>';
         else if (isFriend) h += '<span style="font-size:10px;color:#4caf50">已好友</span>';
-        else h += '<button onclick="addFriend(\'' + u.uid + '\')" style="padding:3px 8px;background:#4a9eff;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer">加好友</button>';
+        else h += '<button onclick="addFriend(\'' + esc(u.uid) + '\')" style="padding:3px 8px;background:#4a9eff;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer">加好友</button>';
         h += '</div>';
       });
       el.innerHTML = h;
@@ -616,7 +680,7 @@ function loadGlobalRank() {
     var h = '<div class="card" style="padding:4px">';
     list.forEach(function(u) {
       var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
-      h += '<div class="lb-row"><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + u.avatar + '</div><div class="lb-name">' + u.nickname + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
+      h += '<div class="lb-row"><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + esc(u.avatar) + '</div><div class="lb-name">' + esc(u.nickname) + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
     });
     h += '</div>';
     el.innerHTML = h;
@@ -647,22 +711,6 @@ function showToast(icon, title, sub) {
 function hideToast() {
   document.getElementById('toastBox').classList.remove('show');
   document.getElementById('toastOverlay').classList.remove('show');
-}
-
-function loadGlobalRank() {
-  fetch(API + '/api/leaderboard').then(function(r){return r.json()}).then(function(data) {
-    var el = document.getElementById('globalRank');
-    if (!el) return;
-    var list = data.byCoins || [];
-    if (!list.length) { el.innerHTML = '<div class="empty">暂无数据</div>'; return; }
-    var h = '<div class="card" style="padding:4px">';
-    list.forEach(function(u) {
-      var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
-      h += '<div class="lb-row"><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + u.avatar + '</div><div class="lb-name">' + u.nickname + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
-    });
-    h += '</div>';
-    el.innerHTML = h;
-  }).catch(function(){});
 }
 
 function copyInvite() {
@@ -712,7 +760,7 @@ function loadFriendsData() {
       list.forEach(function(u) {
         var rc = u.rank<=3?'lb-rank top'+u.rank:'lb-rank';
         var me = u.isMe ? ' style="background:#1a2240"' : '';
-        h += '<div class="lb-row"' + me + '><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + u.avatar + '</div><div class="lb-name">' + u.nickname + (u.isMe?' (我)':'') + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
+        h += '<div class="lb-row"' + me + '><div class="' + rc + '">' + u.rank + '</div><div class="lb-avatar">' + esc(u.avatar) + '</div><div class="lb-name">' + esc(u.nickname) + (u.isMe?' (我)':'') + '</div><div class="lb-value coins">🪙' + u.coins + '</div></div>';
       });
       h += '</div>';
       el.innerHTML = h;
@@ -728,7 +776,7 @@ function rHistory(){
   var h='<div class="stats"><div class="stat-box"><div class="stat-num">'+(currentUser?currentUser.coins:0)+'</div><div class="stat-label">金币</div></div><div class="stat-box"><div class="stat-num">'+myBets.length+'</div><div class="stat-label">总竞猜</div></div><div class="stat-box"><div class="stat-num" style="color:'+(profit>=0?'#4caf50':'#f44336')+'">'+(profit>=0?'+':'')+profit+'</div><div class="stat-label">盈亏</div></div><div class="stat-box"><div class="stat-num">'+wr+'%</div><div class="stat-label">胜率</div></div></div>';
   if(!myBets.length)return h+'<div class="empty">暂无竞猜记录</div>';
   h+='<div class="section">竞猜记录</div>';
-  myBets.slice().reverse().forEach(function(b){var ct=b.choice==='home'?b.home:b.choice==='away'?b.away:'平局';var st,rt;if(b.status==='pending'){st='<span class="bet-tag bet-tag-pending">待结算</span>';rt='<span style="color:#ffc107">等待中</span>'}else if(b.status==='won'){st='<span class="bet-tag bet-tag-won">猜对</span>';rt='<span style="color:#4caf50">+'+b.potential+'</span>'}else{st='<span class="bet-tag bet-tag-lost">猜错</span>';rt='<span style="color:#f44336">-'+b.amount+'</span>'}h+='<div class="card" style="padding:8px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:12px">'+b.homeFlag+' '+b.home+' vs '+b.away+' '+b.awayFlag+'</span><br><span style="font-size:10px;color:#5a6580">竞猜: '+ct+' | '+b.amount+'金币 | 赔率'+b.odds+' '+st+'</span></div><div style="text-align:right;font-weight:700">'+rt+'</div></div></div>'});
+  myBets.slice().reverse().forEach(function(b){var ct=b.choice==='home'?esc(b.home):b.choice==='away'?esc(b.away):'平局';var st,rt;if(b.status==='pending'){st='<span class="bet-tag bet-tag-pending">待结算</span>';rt='<span style="color:#ffc107">等待中</span>'}else if(b.status==='won'){st='<span class="bet-tag bet-tag-won">猜对</span>';rt='<span style="color:#4caf50">+'+b.potential+'</span>'}else{st='<span class="bet-tag bet-tag-lost">猜错</span>';rt='<span style="color:#f44336">-'+b.amount+'</span>'}h+='<div class="card" style="padding:8px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:12px">'+esc(b.homeFlag)+' '+esc(b.home)+' vs '+esc(b.away)+' '+esc(b.awayFlag)+'</span><br><span style="font-size:10px;color:#5a6580">竞猜: '+ct+' | '+b.amount+'金币 | 赔率'+b.odds+' '+st+'</span></div><div style="text-align:right;font-weight:700">'+rt+'</div></div></div>'});
   return h;
 }
 
@@ -742,7 +790,7 @@ function rStandings(){
   return h;
 }
 
-function rChamp(){return'<div class="section">冠军预测</div><div class="card gold champ"><div class="champ-flag">🇦🇷</div><div class="champ-name">阿根廷</div><div class="champ-sub">卫冕冠军阵容成熟,梅西最后一舞</div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">夺冠概率: 20%</span></div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">候选: </span>🇫🇷法国18% · 🇩🇪德国15% · 🇧🇷巴西12% · 🇪🇸西班牙10%</div></div>'}
+function rChamp(){var FLAG={'阿根廷':'🇦🇷','法国':'🇫🇷','英格兰':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','巴西':'🇧🇷','德国':'🇩🇪','西班牙':'🇪🇸','荷兰':'🇳🇱','葡萄牙':'🇵🇹','比利时':'🇧🇪','克罗地亚':'🇭🇷','哥伦比亚':'🇨🇴','乌拉圭':'🇺🇾','日本':'🇯🇵','美国':'🇺🇸','墨西哥':'🇲🇽','韩国':'🇰🇷','澳大利亚':'🇦🇺','瑞士':'🇨🇭'};var teams=Object.entries(ELO).sort(function(a,b){return b[1]-a[1]}).slice(0,10);var total=teams.reduce(function(s,t){return s+Math.exp(t[1]/1000)},0);var c=teams.map(function(t){return{name:t[0],flag:FLAG[t[0]]||'🏳️',chance:(Math.exp(t[1]/1000)/total*100).toFixed(1)}});var h='<div class="section">冠军预测</div><div class="card gold champ"><div class="champ-flag">'+c[0].flag+'</div><div class="champ-name">'+c[0].name+'</div><div class="champ-sub">Elo评分最强，综合实力领先</div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">夺冠概率: '+c[0].chance+'%</span></div><div class="champ-sub" style="margin-top:8px"><span style="color:#ffd700">候选: </span>';var parts=[];for(var i=1;i<6;i++){parts.push(c[i].flag+c[i].name+' '+c[i].chance+'%')}h+=parts.join(' · ')+'</div></div>';return h}
 
 function showGroup(el,k){document.querySelectorAll('.gtab').forEach(function(t){t.classList.remove('active')});el.classList.add('active');document.querySelectorAll('.card[id^="g-"]').forEach(function(c){c.style.display='none'});document.getElementById('g-'+k).style.display='block'}
 
@@ -761,6 +809,75 @@ if (currentUser) {
 }
 loadData();
 setInterval(function(){loadData();loadBets()}, 60000);
+
+// ===== WebSocket 实时推送 =====
+var ws = null;
+var wsRetry = 0;
+function connectWS() {
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host);
+
+  ws.onopen = function() {
+    console.log('📡 WebSocket 已连接');
+    wsRetry = 0;
+  };
+
+  ws.onmessage = function(evt) {
+    try {
+      var msg = JSON.parse(evt.data);
+      if (msg.type === 'snapshot') {
+        allMatches = msg.matches;
+        render();
+      } else if (msg.type === 'match_update') {
+        // 合并更新
+        var changed = msg.matches || [];
+        changed.forEach(function(cm) {
+          var idx = allMatches.findIndex(function(m){return m.id===cm.id});
+          if (idx >= 0) allMatches[idx] = cm;
+          else allMatches.push(cm);
+        });
+        render();
+        loadBets();
+        // 提示用户
+        changed.forEach(function(m) {
+          if (m.status === 'finished') {
+            showToast('⚽', '比赛结束', m.homeFlag + ' ' + m.home + ' ' + m.homeScore + '-' + m.awayScore + ' ' + m.away + ' ' + m.awayFlag);
+          }
+        });
+      } else if (msg.type === 'bet_settled') {
+        if (currentUser && msg.uid === currentUser.uid) {
+          if (msg.won) {
+            showToast('🎉', '竞猜猜对了!', '+' + msg.profit + ' 金币');
+          } else {
+            showToast('😅', '竞猜猜错了', msg.profit + ' 金币');
+          }
+          loadBets();
+          // 刷新用户金币
+          fetch(API + '/api/user/' + currentUser.uid).then(function(r){return r.json()}).then(function(d){
+            if(d.user){currentUser=d.user;saveUser(currentUser);updateUserUI();}
+          }).catch(function(){});
+        }
+      } else if (msg.type === 'pong') {
+        // heartbeat ack
+      }
+    } catch(e) {}
+  };
+
+  ws.onclose = function() {
+    console.log('📡 WebSocket 断开，重连中...');
+    wsRetry++;
+    setTimeout(connectWS, Math.min(30000, 1000 * Math.pow(2, wsRetry)));
+  };
+
+  ws.onerror = function() { ws.close(); };
+}
+
+// 心跳保活
+setInterval(function() {
+  if (ws && ws.readyState === 1) ws.send('{"type":"ping"}');
+}, 30000);
+
+connectWS();
 </script>
 <div class="overlay" id="toastOverlay" onclick="hideToast()"></div>
 <div class="overlay" id="errorOverlay" onclick="hideError()" style="display:none"></div>

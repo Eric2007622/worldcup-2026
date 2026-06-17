@@ -2,6 +2,8 @@ const express = require('express')
 const cors = require('cors')
 const fetch = require('node-fetch')
 const path = require('path')
+const http = require('http')
+const { WebSocketServer } = require('ws')
 
 const app = express()
 app.use(cors())
@@ -10,6 +12,14 @@ app.use(express.json())
 const PORT = process.env.PORT || 3000
 const API_URL = 'https://api.openligadb.de/getmatchdata/wm2026'
 const DATABASE_URL = process.env.DATABASE_URL || ''
+const { t, f, g } = require('../shared/i18n')
+const predictor = require('../shared/predictor')
+
+// ===== 输入清理 =====
+function sanitize(str, maxLen) {
+  if (typeof str !== 'string') return ''
+  return str.replace(/[<>"'&]/g, '').trim().slice(0, maxLen || 50)
+}
 
 // ===== 数据库 =====
 let pool = null
@@ -76,20 +86,23 @@ async function getRawData() {
 }
 
 // ===== 翻译 =====
-const CN={'Mexiko':'墨西哥','Südafrika':'南非','Südkorea':'韩国','Tschechien':'捷克','Kanada':'加拿大','Bosnien-Herzegowina':'波黑','Katar':'卡塔尔','Schweiz':'瑞士','Brasilien':'巴西','Marokko':'摩洛哥','Haiti':'海地','Schottland':'苏格兰','USA':'美国','Paraguay':'巴拉圭','Australien':'澳大利亚','Türkei':'土耳其','Deutschland':'德国','Curaçao':'库拉索','Elfenbeinküste':'科特迪瓦','Ecuador':'厄瓜多尔','Niederlande':'荷兰','Japan':'日本','Schweden':'瑞典','Tunesien':'突尼斯','Spanien':'西班牙','Kap Verde':'佛得角','Saudi-Arabien':'沙特阿拉伯','Uruguay':'乌拉圭','Belgien':'比利时','Ägypten':'埃及','Iran':'伊朗','Neuseeland':'新西兰','Frankreich':'法国','Senegal':'塞内加尔','Irak':'伊拉克','Norwegen':'挪威','Argentinien':'阿根廷','Algerien':'阿尔及利亚','Österreich':'奥地利','Jordanien':'约旦','Kolumbien':'哥伦比亚','Portugal':'葡萄牙','Usbekistan':'乌兹别克斯坦','DR Kongo':'刚果(金)','England':'英格兰','Kroatien':'克罗地亚','Ghana':'加纳','Panama':'巴拿马'}
-const FL={'Mexiko':'🇲🇽','Südafrika':'🇿🇦','Südkorea':'🇰🇷','Tschechien':'🇨🇿','Kanada':'🇨🇦','Bosnien-Herzegowina':'🇧🇦','Katar':'🇶🇦','Schweiz':'🇨🇭','Brasilien':'🇧🇷','Marokko':'🇲🇦','Haiti':'🇭🇹','Schottland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','USA':'🇺🇸','Paraguay':'🇵🇾','Australien':'🇦🇺','Türkei':'🇹🇷','Deutschland':'🇩🇪','Curaçao':'🇨🇼','Elfenbeinküste':'🇨🇮','Ecuador':'🇪🇨','Niederlande':'🇳🇱','Japan':'🇯🇵','Schweden':'🇸🇪','Tunesien':'🇹🇳','Spanien':'🇪🇸','Kap Verde':'🇨🇻','Saudi-Arabien':'🇸🇦','Uruguay':'🇺🇾','Belgien':'🇧🇪','Ägypten':'🇪🇬','Iran':'🇮🇷','Neuseeland':'🇳🇿','Frankreich':'🇫🇷','Senegal':'🇸🇳','Irak':'🇮🇶','Norwegen':'🇳🇴','Argentinien':'🇦🇷','Algerien':'🇩🇿','Österreich':'🇦🇹','Jordanien':'🇯🇴','Kolumbien':'🇨🇴','Portugal':'🇵🇹','Usbekistan':'🇺🇿','DR Kongo':'🇨🇩','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Kroatien':'🇭🇷','Ghana':'🇬🇭','Panama':'🇵🇦'}
-const GP={'Mexiko':'A','Südafrika':'A','Südkorea':'A','Tschechien':'A','Kanada':'B','Bosnien-Herzegowina':'B','Katar':'B','Schweiz':'B','Brasilien':'C','Marokko':'C','Haiti':'C','Schottland':'C','USA':'D','Paraguay':'D','Australien':'D','Türkei':'D','Deutschland':'E','Curaçao':'E','Elfenbeinküste':'E','Ecuador':'E','Niederlande':'F','Japan':'F','Schweden':'F','Tunesien':'F','Belgien':'G','Ägypten':'G','Iran':'G','Neuseeland':'G','Spanien':'H','Kap Verde':'H','Saudi-Arabien':'H','Uruguay':'H','Frankreich':'I','Senegal':'I','Irak':'I','Norwegen':'I','Argentinien':'J','Algerien':'J','Österreich':'J','Jordanien':'J','Kolumbien':'K','Portugal':'K','Usbekistan':'K','DR Kongo':'K','England':'L','Kroatien':'L','Ghana':'L','Panama':'L'}
-function t(n){return CN[n]||n} function f(n){return FL[n]||'🏳️'} function g(n){return GP[n]||''}
 
 function convertMatch(m){const r=m.matchResults||[],fi=r.find(x=>x.resultTypeID===2),u=new Date(m.matchDateTimeUTC||m.matchDateTime),bj=new Date(u.getTime()+8*3600000);return{id:m.matchID,date:bj.toISOString().split('T')[0],time:String(bj.getHours()).padStart(2,'0')+':'+String(bj.getMinutes()).padStart(2,'0'),group:g(m.team1.teamName),home:t(m.team1.teamName),homeFlag:f(m.team1.teamName),away:t(m.team2.teamName),awayFlag:f(m.team2.teamName),homeScore:fi?fi.pointsTeam1:null,awayScore:fi?fi.pointsTeam2:null,status:m.matchIsFinished?'finished':'upcoming'}}
 
-function calcOdds(ch,h,a){const R={'阿根廷':94,'法国':93,'英格兰':91,'巴西':90,'德国':89,'西班牙':89,'荷兰':87,'葡萄牙':87,'比利时':85,'克罗地亚':84,'哥伦比亚':83,'乌拉圭':82,'日本':80,'美国':79,'墨西哥':78,'韩国':77,'澳大利亚':76,'瑞士':76},HB={'美国':8,'墨西哥':8,'加拿大':6};const hr=(R[h]||60)+(HB[h]||0),ar=R[a]||60,diff=hr-ar;let base;if(diff>=8)base={home:1.5,draw:3.5,away:6.0};else if(diff>=3)base={home:1.8,draw:3.2,away:4.5};else if(diff>=-3)base={home:2.5,draw:2.8,away:2.8};else if(diff>=-8)base={home:4.5,draw:3.2,away:1.8};else base={home:6.0,draw:3.5,away:1.5};return base[ch]||2.0}
+function calcOdds(ch, h, a) {
+  const xg = predictor.expectedGoals(h, a)
+  const probs = predictor.matchProbabilities(xg.homeXG, xg.awayXG)
+  return predictor.calcOdds(ch, probs)
+}
 
 function computeStandings(matches){const groups={};for(const k of 'ABCDEFGHIJKL')groups[k]={name:k+'组',teams:{}};for(const m of matches.filter(m=>m.status==='finished')){const key=m.group;if(!key||!groups[key])continue;const h=m.home,a=m.away;if(!groups[key].teams[h])groups[key].teams[h]={name:h,flag:m.homeFlag,mp:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};if(!groups[key].teams[a])groups[key].teams[a]={name:a,flag:m.awayFlag,mp:0,w:0,d:0,l:0,gf:0,ga:0,pts:0};const ht=groups[key].teams[h],at=groups[key].teams[a];ht.mp++;at.mp++;ht.gf+=m.homeScore;ht.ga+=m.awayScore;at.gf+=m.awayScore;at.ga+=m.homeScore;if(m.homeScore>m.awayScore){ht.w++;ht.pts+=3;at.l++}else if(m.homeScore<m.awayScore){at.w++;at.pts+=3;ht.l++}else{ht.d++;ht.pts++;at.d++;at.pts++}}for(const k of 'ABCDEFGHIJKL'){const arr=Object.values(groups[k].teams);arr.sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);groups[k].teams=arr.map((t,i)=>({...t,rank:i+1}))}return groups}
 
 // ===== 用户 API =====
 app.post('/api/user/invite-login', async (req, res) => {
-  const { nickname, avatar, inviteCode, wechatId } = req.body
+  const nickname = sanitize(req.body.nickname, 12)
+  const avatar = sanitize(req.body.avatar, 4)
+  const inviteCode = sanitize(req.body.inviteCode, 20)
+  const wechatId = sanitize(req.body.wechatId, 20)
   if (!nickname) return res.status(400).json({ error: '请输入昵称' })
   if (!wechatId) return res.status(400).json({ error: '请输入微信号' })
 
@@ -181,6 +194,10 @@ app.post('/api/bet', async (req, res) => {
     const match = raw.find(m => m.matchID === matchId)
     if (!match) return res.status(400).json({ error: '比赛不存在(ID:' + matchId + ')' })
 
+    // 检查比赛是否已开始
+    const matchTime = new Date(match.matchDateTimeUTC || match.matchDateTime)
+    if (matchTime <= new Date()) return res.status(400).json({ error: '比赛已开始，无法下注' })
+
     const converted = convertMatch(match)
     const odds = calcOdds(choice, converted.home, converted.away)
     const betId = 'b_' + Date.now()
@@ -208,11 +225,16 @@ app.get('/api/bets/:uid', async (req, res) => {
 // 结算
 app.post('/api/settle', async (req, res) => {
   if (!pool) return res.json({ settled: 0 })
+  // 只结算指定用户的注单，或管理员全量结算
+  const { uid, adminKey } = req.body
+  if (!uid && adminKey !== process.env.ADMIN_KEY) return res.status(403).json({ error: '需要登录' })
   let raw = cachedData
   if (!raw || !raw.length) {
     try { raw = await getRawData() } catch(e) { raw = [] }
   }
-  const pending = await query('SELECT * FROM bets WHERE status=$1', ['pending'])
+  const pending = uid
+    ? await query('SELECT * FROM bets WHERE status=$1 AND uid=$2', ['pending', uid])
+    : await query('SELECT * FROM bets WHERE status=$1', ['pending'])
   let settled = 0
 
   for (const bet of pending) {
@@ -320,7 +342,7 @@ app.get('/api/standings', async (req, res) => {
 
 // 通过微信号登录
 app.post('/api/user/login-by-wechat', async (req, res) => {
-  const { wechatId } = req.body
+  const wechatId = sanitize(req.body.wechatId, 20)
   if (!wechatId) return res.status(400).json({ error: '请输入微信号' })
 
   if (pool) {
@@ -370,7 +392,7 @@ app.get('/api/health', async (req, res) => {
 
 // 设置微信号
 app.post('/api/user/:uid/wechat', async (req, res) => {
-  const { wechatId } = req.body
+  const wechatId = sanitize(req.body.wechatId, 20)
   if (!wechatId) return res.status(400).json({ error: '请输入微信号' })
   if (pool) {
     const existing = await query('SELECT uid FROM users WHERE wechat_id=$1 AND uid!=$2', [wechatId, req.params.uid])
@@ -386,14 +408,144 @@ function dbUser(u) {
   return { uid: u.uid, nickname: u.nickname, avatar: u.avatar, coins: u.coins, totalBets: u.total_bets, wins: u.wins, losses: u.losses, profit: u.profit, inviteCode: u.invite_code, wechatId: u.wechat_id || '', invitedBy: u.invited_by || null, inviteReward: u.invite_reward || 0 }
 }
 
+// 预测 API
+app.get('/api/predict/:home/:away', (req, res) => {
+  try {
+    const result = predictor.predict(req.params.home, req.params.away)
+    res.json(result)
+  } catch (e) {
+    res.status(500).json({ error: '预测失败' })
+  }
+})
+
+app.get('/api/predict-bulk', (req, res) => {
+  try {
+    const raw = cachedData || []
+    const matches = raw.map(convertMatch).filter(m => m.status === 'upcoming')
+    const predictions = matches.map(m => ({
+      matchId: m.id,
+      home: m.home,
+      away: m.away,
+      ...predictor.predict(m.home, m.away)
+    }))
+    res.json({ count: predictions.length, predictions })
+  } catch (e) {
+    res.status(500).json({ error: '批量预测失败' })
+  }
+})
+
+// 冠军预测
+app.get('/api/champion', (req, res) => {
+  try {
+    res.json(predictor.getChampionPrediction())
+  } catch (e) {
+    res.status(500).json({ error: '冠军预测失败' })
+  }
+})
+
+app.use('/shared', express.static(path.join(__dirname, '..', 'shared')))
 app.use(express.static(path.join(__dirname, '..', 'web')))
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'web', 'index.html'))
 })
 
 initDB().then(() => {
-  app.listen(PORT, () => {
+  const server = http.createServer(app)
+  const wss = new WebSocketServer({ server })
+
+  // ===== WebSocket 实时推送 =====
+  const clients = new Set()
+
+  wss.on('connection', (ws) => {
+    clients.add(ws)
+    console.log(`📡 客户端连接 (当前 ${clients.size})`)
+
+    // 发送当前数据快照
+    if (cachedData) {
+      const matches = cachedData.map(convertMatch)
+      ws.send(JSON.stringify({ type: 'snapshot', matches }))
+    }
+
+    ws.on('close', () => {
+      clients.delete(ws)
+    })
+
+    ws.on('message', (msg) => {
+      try {
+        const data = JSON.parse(msg)
+        if (data.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }))
+      } catch (e) {}
+    })
+  })
+
+  function broadcast(msg) {
+    const json = JSON.stringify(msg)
+    for (const ws of clients) {
+      if (ws.readyState === 1) ws.send(json)
+    }
+  }
+
+  // 比赛数据轮询，检测变化并推送
+  let prevMatchHash = ''
+  async function pollMatches() {
+    try {
+      const raw = await getRawData()
+      const matches = raw.map(convertMatch)
+      // 用比分和状态做 hash
+      const hash = matches.map(m => `${m.id}:${m.homeScore}-${m.awayScore}:${m.status}`).join('|')
+      if (hash !== prevMatchHash && prevMatchHash !== '') {
+        // 检测具体变化
+        const prevMatches = cachedData ? cachedData.map(convertMatch) : []
+        const changed = []
+        for (const m of matches) {
+          const prev = prevMatches.find(p => p.id === m.id)
+          if (!prev) continue
+          if (prev.homeScore !== m.homeScore || prev.awayScore !== m.awayScore || prev.status !== m.status) {
+            changed.push(m)
+          }
+        }
+        if (changed.length > 0) {
+          broadcast({ type: 'match_update', matches: changed, all: matches })
+          console.log(`📡 推送 ${changed.length} 场比赛更新`)
+
+          // 自动结算竞猜
+          if (pool) {
+            for (const m of changed.filter(m => m.status === 'finished')) {
+              const pending = await query('SELECT * FROM bets WHERE match_id = $1 AND status = $2', [m.id, 'pending'])
+              for (const bet of pending) {
+                let result
+                if (m.homeScore > m.awayScore) result = 'home'
+                else if (m.homeScore < m.awayScore) result = 'away'
+                else result = 'draw'
+                const won = bet.choice === result
+                const profit = won ? bet.potential - bet.amount : -bet.amount
+                await run('UPDATE bets SET status=$1, result=$2, profit=$3 WHERE id=$4', [won ? 'won' : 'lost', result, profit, bet.id])
+                if (won) {
+                  await run('UPDATE users SET coins = coins + $1, wins = wins + 1, profit = profit + $2 WHERE uid = $3', [bet.potential, profit, bet.uid])
+                } else {
+                  await run('UPDATE users SET losses = losses + 1, profit = profit + $1 WHERE uid = $2', [profit, bet.uid])
+                }
+                // 推送结算结果给相关用户
+                broadcast({ type: 'bet_settled', uid: bet.uid, matchId: m.id, won, profit, choice: bet.choice })
+              }
+            }
+          }
+        }
+      }
+      prevMatchHash = hash
+    } catch (e) {
+      console.error('轮询失败:', e.message)
+    }
+  }
+
+  // 每 60 秒轮询一次比赛数据
+  setInterval(pollMatches, 60 * 1000)
+  // 启动后立即轮询一次
+  pollMatches()
+
+  server.listen(PORT, () => {
     console.log(`⚽ 世界杯服务已启动: http://localhost:${PORT}`)
     console.log(`   数据库: ${pool ? 'PostgreSQL' : '内存存储'}`)
+    console.log(`   WebSocket: ws://localhost:${PORT}`)
   })
 })
