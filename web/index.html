@@ -201,9 +201,10 @@ var selectedAvatar = '😎';
 var lbTab = 'coins';
 
 // ===== XSS 防御 =====
+var _amp=String.fromCharCode(38),_lt=String.fromCharCode(60),_gt=String.fromCharCode(62),_qt=String.fromCharCode(34),_ap=String.fromCharCode(39);
 function esc(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(s).replace(/&/g,_amp+'amp;').replace(/</g,_amp+'lt;').replace(/>/g,_amp+'gt;').replace(/"/g,_amp+'quot;').replace(/'/g,_amp+'#39;');
 }
 
 // ===== 用户系统 =====
