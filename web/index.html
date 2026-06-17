@@ -536,6 +536,7 @@ async function loadLB() {
       var rc = i<3?'lb-rank top'+(i+1):'lb-rank';
       var cls = u.profit>=0?'profit-pos':'profit-neg';
       h+='<div class="lb-row"><div class="'+rc+'">'+(i+1)+'</div><div class="lb-avatar">'+esc(u.avatar)+'</div><div class="lb-name">'+esc(u.nickname)+'</div><div class="lb-value '+cls+'">'+(u.profit>=0?'+':'')+u.profit+'</div></div>';
+    });
   }
   if (!list.length) h = '<div class="empty">暂无数据,快来成为第一名!</div>';
   var el = document.getElementById('lbContent');
